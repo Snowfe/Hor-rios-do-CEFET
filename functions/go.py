@@ -5,7 +5,7 @@ from functions import logic
 import random
 import copy
 
-NUMERO_DE_REPETIÇÕES = 20
+NUMERO_DE_REPETIÇÕES = 10
 
 
 def restartObjects(listO):
@@ -29,6 +29,8 @@ def mainFunction():  # A função principal do código, que retornará o resulta
         for i in range(0, len(teachersData['Sub-Grupo'])):
             if str(teachersData['Sub-Grupo'][i]) == '0':
                 teachersData['Sub-Grupo'][i] = 'NA'
+        for k, i in teachersData.items():
+            print(k, i)
         teachersColumns = loadData.getDatabase('Planilha dos horários.xlsx', get="columns") ##
         roomsData = loadData.getDatabase('Planilha sala.xlsx') # Leitura inicial da planilha de salas
         pointsData = loadData.getPoints('./data/preferencias.txt')  # Leitura das pontuações para o cost
@@ -53,9 +55,12 @@ def mainFunction():  # A função principal do código, que retornará o resulta
 
     for index, teacher in enumerate(teachersData["Professor"]):  # Transforma cada professor em um objeto de uma classe
         horaries = {}  # Horários para cada turma e matéria
-        for i in range(9, len(teachersColumns)):
+        for i in range(12, len(teachersColumns)):   # SE ACRESCENTAR OU TIRAR COLUNA NA TABELA, TEM QUE MUDAR O VALOR AQUI
             horaries[
-                f"{teachersColumns[i]}-" + f'{teachersData["Ano"][index]}' + f'{teachersData["Sub-Grupo"][index]}'] = int(
+                    f"{teachersColumns[i]}-" + 
+                    f'{teachersData["Ano"][index]}' + 
+                    f'{teachersData["Sub-Grupo"][index]}' + 
+                    f'|{teachersData["Numero de grupos"][index]},{teachersData["Numero de bimestres"][index]},{teachersData["Grupo"][index]}'] = int(
                 teachersData[f"{teachersColumns[i]}"][index])
 
 
@@ -87,9 +92,12 @@ def mainFunction():  # A função principal do código, que retornará o resulta
         for i, h in enumerate(horarios.items()):
             materia = h[0]
             for turma in h[1].items():
+                print(h[0], turma)
                 turma_do_horario = turma[0]
                 for time in range(0, turma[1]):
-                    ho = c.Horario(professor, materia, turma, professor.locais[i])  # Objeto do horário
+                    sala, tipo = turma[0].split('|')
+                    
+                    ho = c.Horario(professor, materia, (sala, turma[1]), professor.locais[i], tipo)  # Objeto do horário
                     professor.h_individuais.append(ho)  # Uma lista com todos os objetos Horario do professor []
 
     roomsNames = roomsData['Sala'] # -- Salas

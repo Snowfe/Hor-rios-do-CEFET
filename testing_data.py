@@ -22,7 +22,6 @@ for k, i in salas.items():
         print(k, '||', i , '(20)')
     if not('N' in k) and (i > 30):
         print(k, '||', i, '(30)')
-
     
     
     

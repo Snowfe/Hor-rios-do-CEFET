@@ -102,9 +102,11 @@ def cost_individual(horario, position, board, subjectPos, typeNum, sala='', bime
             if position[1] != 0:
                 if dayBoard[position[1] - 1] != 0:
                     if bimestral == 1 and type(dayBoard[position[1] - 1]) is list:
-                        if dayBoard[position[1] - 1][position[2]] != 0: # se não está vázio
-                            if dayBoard[position[1] - 1][position[2]].subject == horario.subject: 
-                                pontuation += points[p] *2
+                        try:
+                            if dayBoard[position[1] - 1][position[2]] != 0: # se não está vázio
+                                if dayBoard[position[1] - 1][position[2]].subject == horario.subject: 
+                                    pontuation += points[p] *2
+                        except: pass
                     else:
                         try:
                             if dayBoard[position[1] - 1].subject == horario.subject: pontuation += points[p]
@@ -112,9 +114,11 @@ def cost_individual(horario, position, board, subjectPos, typeNum, sala='', bime
             if not(position[1] == 5 or (position[1] == 3 and typeNum == 2)):
                 if dayBoard[position[1] + 1] != 0:
                     if bimestral == 1 and type(dayBoard[position[1] + 1]) is list:
-                        if dayBoard[position[1] + 1][position[2]] != 0: # se não está vázio
-                            if dayBoard[position[1] + 1][position[2]].subject == horario.subject: 
-                                pontuation += points[p] *2
+                        try:
+                            if dayBoard[position[1] + 1][position[2]] != 0: # se não está vázio
+                                if dayBoard[position[1] + 1][position[2]].subject == horario.subject:      # Não está levando em consideração que o próximo horário pode não ter a mesma quantidade de 
+                                    pontuation += points[p] *2
+                        except: pass
                     else:
                         try:
                             if dayBoard[position[1] + 1].subject == horario.subject: pontuation += points[p]
@@ -155,7 +159,10 @@ def cost_board(board):
     points = loadData.getPoints('./data/preferencias.txt')
 
     media = 0
-    for b in range(0, 4): # Para cada bimestre
+
+    spaces = 4 # vai possuir valores diferentes dependendo do tipo do horário
+               # Se o horário for 1 bimestre, vai ser 4, se for 2 vai ser 2, se for 4 vai ser 2 também
+    for b in range(0, spaces): # Para cada bimestre
         # Vamos ir somando valores a result_value conforme vamos aumentando a pontuação
         result_value = 0 
         for quadro in board.values():  # Para cada turma
@@ -168,9 +175,10 @@ def cost_board(board):
                     for h in turno:
                         if type(h) is list:
                             for bimestral in h:
-                                result_value = result_value + points['bimestraisJuntos'] if bimestral != 0 else result_value
-                            if h[b] == 0:
-                                num_of_0 += 1
+                                if bimestral == 0:
+                                    num_of_0 += 1
+                                else:
+                                    result_value = result_value + points['bimestraisJuntos'] if bimestral != 0 else result_value
                         elif h == 0:
                             num_of_0 += 1
                     # Pontuação para cada dia já preenchido
@@ -181,56 +189,90 @@ def cost_board(board):
                         result_value += points['tresHorariosDia']
 
                     # Primeiros e últimos horários do turno
-                    if type(turno[0]) is list:
-                        if turno[0][b] != 0:
-                            result_value += points['horariosPoints']
-                    elif turno[0] != 0:
+                    
+                    if turno[0] != 0:
                         result_value += points['horariosPoints']
 
-                    if type(turno[-1]) is list:
-                        if turno[-1][b] != 0:
-                            result_value += points['horariosPoints']
-                    elif turno[-1] != 0:
+                    elif type(turno[0]) is list:
                         result_value += points['horariosPoints']
-
+                    
+                    if turno[-1] != 0:
+                        result_value += points['horariosPoints']
+                    
+                    elif type(turno[-1]) is list:
+                        result_value += points['horariosPoints']
+                    
                     # Horários de mesma matéria agrupados
-                    for h in range(0, len(turno)):
-                        if (h != len(turno) - 1):
-                            if turno[h] != 0 and turno[h+1] != 0:
-                                actual = turno[h] if not(type(turno[h]) is list) else turno[h][b]
-                                prox = turno[h+1] if not(type(turno[h+1]) is list) else turno[h+1][b]
-                                if actual != 0 and prox != 0:
-                                    if actual.subject == prox.subject:
-                                        result_value += points['lastResp']
+                    for h in range(0, len(turno)-1):
+                        #if (h != len(turno) - 1):
+                        if turno[h] != 0 and turno[h+1] != 0:
+                            if not(type(turno[h]) is list or type(turno[h+1]) is list) and turno[h] != 0 and turno[h+1] != 0:
+                                if turno[h].subject == turno[h+1].subject:
+                                    result_value += points['lastResp']
+                            elif (type(turno[h]) is list) and (type(turno[h+1]) is list) and b == 0:
+                                if len(turno[h]) == len(turno[h+1]):
+                                    for count in range(0, len(turno[h])):
+                                        if turno[h][count] and turno[h+1][count]:
+                                            if turno[h][count].subject == turno[h+1][count].subject:
+                                                result_value += points['lastResp']                                
                     
                     # Professor dando aula no dia que ele quer
                     for h in range(0, len(turno)):
-                        hor = turno[h] if not(type(turno[h]) is list) else turno[h][b]
-                        if hor != 0:  # Horários do turno (manhã ou tarde)
-                            for prefers in hor.teacher.prefers:
-                                for p in prefers:  # para cada limitação do professor
-                                    if f'N{day}' in str(p) or f'S{day}' in str(p):  # Se a limitação estiver no dia do horário
-                                        try:
-                                            limite_inferior = int(p.split(':')[1].split(',')[0])
-                                            limite_superior = int(p.split(':')[1].split(',')[1])
+                        if turno[h] != 0 and not(type(turno[h]) is list):
+                            hor = turno[h]
+                        elif type(turno[h]) is list:
+                            for count in range(0, len(turno[h])):
+                                hor = turno[h][count]
+                                if hor:
+                                    for prefers in hor.teacher.prefers:
+                                        for p in prefers:  # para cada limitação do professor
+                                            if f'N{day}' in str(p) or f'S{day}' in str(p):  # Se a limitação estiver no dia do horário
+                                                try:
+                                                    limite_inferior = int(p.split(':')[1].split(',')[0])
+                                                    limite_superior = int(p.split(':')[1].split(',')[1])
 
-                                            # O horário 1 do turno da tarde equivale ao horário 7 no quadro geral, assim, 
-                                            # precisamos subtrair esses valores para que faça sentido na lista em que estão inseridos
-                                            if typeNum == 1:
-                                                limite_inferior -= 6
-                                                limite_superior -= 6
-                                            elif typeNum == 2:
-                                                limite_inferior -= 12
-                                                limite_superior -= 12
-                                        except:  # Considerando o caso de não ter selecionado uma variação de horários
-                                            limite_inferior = 1
-                                            limite_superior = 12
+                                                    # O horário 1 do turno da tarde equivale ao horário 7 no quadro geral, assim, 
+                                                    # precisamos subtrair esses valores para que faça sentido na lista em que estão inseridos
+                                                    if typeNum == 1:
+                                                        limite_inferior -= 6
+                                                        limite_superior -= 6
+                                                    elif typeNum == 2:
+                                                        limite_inferior -= 12
+                                                        limite_superior -= 12
+                                                except:  # Considerando o caso de não ter selecionado uma variação de horários
+                                                    limite_inferior = 1
+                                                    limite_superior = 12
 
-                                        if (limite_inferior <= int(h) + 1) and (limite_superior >= int(h) + 1):  # Se o horário estiver compreendido durante a limitação
-                                            if str(p)[0] == 'S':
-                                                result_value += points['preferPositiva']
-                                            else:
-                                                result_value += points['preferNegativa']
+                                                if (limite_inferior <= int(h) + 1) and (limite_superior >= int(h) + 1):  # Se o horário estiver compreendido durante a limitação
+                                                    if str(p)[0] == 'S':
+                                                        result_value += points['preferPositiva']
+                                                    else:
+                                                        result_value += points['preferNegativa']
+                            if hor:
+                                for prefers in hor.teacher.prefers:
+                                    for p in prefers:  # para cada limitação do professor
+                                        if f'N{day}' in str(p) or f'S{day}' in str(p):  # Se a limitação estiver no dia do horário
+                                            try:
+                                                limite_inferior = int(p.split(':')[1].split(',')[0])
+                                                limite_superior = int(p.split(':')[1].split(',')[1])
+
+                                                # O horário 1 do turno da tarde equivale ao horário 7 no quadro geral, assim, 
+                                                # precisamos subtrair esses valores para que faça sentido na lista em que estão inseridos
+                                                if typeNum == 1:
+                                                    limite_inferior -= 6
+                                                    limite_superior -= 6
+                                                elif typeNum == 2:
+                                                    limite_inferior -= 12
+                                                    limite_superior -= 12
+                                            except:  # Considerando o caso de não ter selecionado uma variação de horários
+                                                limite_inferior = 1
+                                                limite_superior = 12
+
+                                            if (limite_inferior <= int(h) + 1) and (limite_superior >= int(h) + 1):  # Se o horário estiver compreendido durante a limitação
+                                                if str(p)[0] == 'S':
+                                                    result_value += points['preferPositiva']
+                                                else:
+                                                    result_value += points['preferNegativa']
                     typeNum += 1
         media += result_value
     return (media/4)
@@ -339,3 +381,42 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
     # Status: aguardando reunião, atualmente seria impossível o estado acima citado não ser válido
     #print('Resultado aprovado -> ', board[str(h_day)][typeNum][h_time], position)
     return 0, 'Tudo certo :)'
+
+
+def bimestrals_organizer(lista_b):
+    """
+    Aqui vamos organizar os horários bimestrais
+    Os horários bimestrais estão sendo colocados dentro de listas, essas listas são diferentes de acordo com o tipo do horário
+    Os horários bimestrais podem ser de 3 tipos, os que tem duração de 1 bimestre, dois bimestres e de 4 bimestres
+
+    1 bimestres  2 bimestres   3 bimestres
+    [A, B, C, 0]   [A, B]        [A, B]
+    [0, A, B, C]   [B, A]
+    [C, 0, A, B]
+    [B, C, 0, A]
+     
+    Os horários em sequência, devem ser organizados da mesma forma
+    """
+    if len(lista_b) == 4:
+        result = []
+        for c in range(0, 4):
+            bimestre = []
+            for d in range(0, 4):
+                v = (d + c) % 4
+                bimestre.appned(lista_b[v])
+            result.append(bimestre)
+        return result
+    for h in lista_b:
+        if h != 0:
+            if '2' in h.tipo:
+                return [[lista_b[0], lista_b[1]], [lista_b[1], lista_b[0]]]
+            elif '4' in h.tipo:
+                return lista_b
+            else:
+                print('ERROR: Tipo do horário não corresponde a nenhum dos requisitos')
+            
+
+    
+
+
+

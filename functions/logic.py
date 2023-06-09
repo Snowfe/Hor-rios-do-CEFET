@@ -12,6 +12,15 @@ Regras Básicas:
 def getBetterHour(horario, board, subjectPos, typeNum):
     motivo = 0
     quadro = board.copy()
+    if not('0' in horario.type):
+        if '1' == horario.type[2]:
+            n_bimestres = 4
+        elif '4,G' in horario.type:
+            n_bimestres = 3
+        elif 'T' in horario.type:
+            n_bimestres = 2
+        else:
+            print('Não corresponde a nenhum', horario, horario.type)
     betterH = [['', -999]]  # (day;hour, pontuação), melhores horários
     # Se for horário bimestral será (day;hour;bimestre, pontuação)
 
@@ -33,7 +42,7 @@ def getBetterHour(horario, board, subjectPos, typeNum):
                         betterH.append([f'{d};{h}', pontuation])
 
             else: # Se for
-                for bimester in range(0, 4):
+                for bimester in range(0, n_bimestres):
                     #print('BIMESTRE -->', bimester)
                     pontuation, motivo = validation(horario, [d, h, bimester], quadro, subjectPos, typeNum, bimestral=1)
                     if pontuation == -100:
@@ -47,11 +56,13 @@ def getBetterHour(horario, board, subjectPos, typeNum):
                         
                         #print(pontuation, d, h, bimester)
     result = random.choice(betterH)[0]
+    #result = betterH[0][0]
+    #result = betterH[-1][0]
     if result == '':
         return 'ERROR', motivo # Isso vai acontecer quando não acharmos uma posição válida par ao horário, e nesse caso toda a grade de horários dessa possibilidade não pode ser usada
     else:
         return f"{result};{turm[0]}", 0  # Retorna f'{day};{hour};{turm}' depois nós colocaremos a room variable
-    # Se bimestral será: f'{day};{hour};{bimester};{turm}'
+                              # Se bimestral será: f'{day};{hour};{bimester};{turm}'
 
 
 def cost_individual(horario, position, board, subjectPos, typeNum, sala='', bimestral=0):
@@ -71,18 +82,32 @@ def cost_individual(horario, position, board, subjectPos, typeNum, sala='', bime
             for h in dayBoard:
                 if h != 0:
                     if type(h) is list and bimestral == 1: # Condicionamento de bimestral
-                        if h[position[2]] != 0:
-                            horariosPreenchidos += 1
-                            pontuation += points[p]
+                        if ('1' == horario.type[2] and len(h) == 4) or ((not ('1' == horario.type[2])) and len(h) == 2) or ('4,G' in horario.type and len(h) == 3):
+                            try:
+                                if h[position[2]] != 0:
+                                    horariosPreenchidos += 1
+                                    pontuation += points[p]
+                            except: 
+                                pontuation -= 100                                
                     else:
                         horariosPreenchidos += 1
                         pontuation += points[p]
+                    if type(h) is list:
+                        for h_bimestral in h:
+                            if h_bimestral:
+                                if h_bimestral.local == horario.local:
+                                    pontuation += points['MesmoCampus']
+                    else:
+                        if h.local == horario.local:
+                            pontuation += points['MesmoCampus']
+
             for h in teacherDayBoard:
                 if h != 0:
                     if type(h) is list and bimestral == 1: # Condicionamento de bimestral
-                        if h[position[2]] != 0:
-                            horariosPreenchidos += 1
-                            pontuation += points[p]
+                        if ('1' == horario.type[2] and len(h) == 4) or ((not ('1' == horario.type[2])) and len(h) == 2) or ('4,G' in horario.type and len(h) == 3):
+                            if h[position[2]] != 0:
+                                horariosPreenchidos += 1
+                                pontuation += points[p]
                     else:
                         horariosP += 1
                         pontuation += points[p]
@@ -145,10 +170,8 @@ def cost_individual(horario, position, board, subjectPos, typeNum, sala='', bime
                             pontuation += points['preferNegativa']
         # Se o horário for bimestral e tiver uma lista na posição em que ele será colocado
         elif p == "bimestraisJuntos" and bimestral and type(dayBoard[position[1]]) is list:
-            pontuation += points[p] * 10
-            #pontuation += points[p] * dayBoard[position[1]][position[2]].count(0)
-            #pontuation += points[p] * horario.teacher.schedule[position[0]][typeNum][position[1]].count(0)
-        # print(pontuation)
+            pontuation += points[p]
+        
 
     return pontuation
 
@@ -289,6 +312,9 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
     h_day = position[0]   # Dia
     h_time = position[1]  # Horário
 
+    if typeNum == 2 and h_time >= 4:
+        print('Mais horários do que devia', horario, h_time)
+
     # Limitações do professor
     limitation = horario.teacher.limits[subjectPos]
     t_limitations = []  # N3:1,4
@@ -315,28 +341,49 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
     # room_invalids_h =
 
     # Horário já está ocupado por outro no Quadro de horários?
+    if not('2' in board.keys()):
+        print(board.keys())
     if board[str(h_day)][typeNum][h_time] != 0: # Se horário preenchido 
         if type(board[str(h_day)][typeNum][h_time]) == type(list()) and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
-
-            if not(0 in board[str(h_day)][typeNum][h_time]):
-                return BREAK_INVALIDO, 'HORÁRIO JÁ OCUPADO 1 _________'
-
+            if len(board[str(h_day)][typeNum][h_time]) == 4:
+                if board[str(h_day)][typeNum][h_time][position[2]] != 0:
+                    return INVALIDO, 'HORÁRIO JÁ OCUPADO 2 _________'
+                for outros_horarios in board[str(h_day)][typeNum][h_time]:
+                    if outros_horarios:
+                        if outros_horarios.type != horario.type:
+                            return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{outros_horarios.type, horario.type}'
+                        if outros_horarios.subject == horario.subject:
+                            return INVALIDO, f'MESMA MATÉRIA FICA EM LISTAS DIFERENTES _{outros_horarios.subject, horario.subject}'
             # Se horário estiver preenchido
-            elif board[str(h_day)][typeNum][h_time][position[2]] != 0:
-                return INVALIDO, 'HORÁRIO JÁ OCUPADO 2 _________'
+            #elif position[2] > 1:
+                #return INVALIDO, 'HORÁRIO NÃO CONPATÍVEL COM O TIPO DO BIMESTRAL'
+            else:
+                for outros_horarios in board[str(h_day)][typeNum][h_time]:
+                    if outros_horarios:
+                        if outros_horarios.type != horario.type or ('3,1,G' in horario.type and len(board[str(h_day)][typeNum][h_time]) != 4):
+                            return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{outros_horarios.type, horario.type}'
+                        
+                if board[str(h_day)][typeNum][h_time][position[2]] != 0:
+                    return INVALIDO, 'HORÁRIO JÁ OCUPADO 2 _________'
 
         else: 
-            return BREAK_INVALIDO, 'HORÁRIO JÁ OCUPADO 3 _________'
+            return BREAK_INVALIDO, f'HORÁRIO JÁ OCUPADO 3 _tem um normal no lugar: {horario.type}'
+    
+
 
     # Verificar também a parte dos professores
+    if type(horario.teacher.schedule[str(h_day)][typeNum]) is int:
+        print(horario, horario.teacher.schedule, horario.teacher.schedule[str(h_day)])
     if horario.teacher.schedule[str(h_day)][typeNum][h_time] != 0: # Se horário preenchido 
-        if type(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == type(list()) and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
+        if type(horario.teacher.schedule[str(h_day)][typeNum][h_time]) is list and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
             if not(0 in horario.teacher.schedule[str(h_day)][typeNum][h_time]):
                 return BREAK_INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 1 _______'
             
             # Se horário estiver preenchido
-            if horario.teacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
-                return INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 2 _______'
+                #Precisamos antes checar se as condições do horário estão corretas, se é compatível o horário que estamos colocando com o local em que ele será colocado
+            if (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 4 and '1' == horario.type[2]) or (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 2 and '2,T' in horario.type) or (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 3 and '4,G' in horario.type):
+                if horario.teacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
+                    return INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 2 _______'
 
         else: 
             return BREAK_INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 3 _______'
@@ -366,9 +413,10 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
     for h in board[position[0]]:
         for value in h:
             if value != 0:
-                if type(value) == type(list()):
+                if type(value) is list:
                     for b in value:
                         if b != 0:
+                            if type(b) is list: print('B é do tipo lista: ', board[position[0]])
                             if horario.local != b.local:
                                 return INVALIDO, 'CAMPUS DIFERENTES EM UM MESMO TURNO 1 __________'
 
@@ -416,7 +464,10 @@ def bimestrals_organizer(lista_b):
                 print('ERROR: Tipo do horário não corresponde a nenhum dos requisitos')
             
 
-    
+def messi_data(quadro):
+    """
+    vamos embaralhar os horários mantendo a sua funcionalidade
+    """
 
 
 

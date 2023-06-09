@@ -1,8 +1,9 @@
-nHorariosDia=-1.0; // Pontuacao para cada dia ja preenchido no dia
-tresHorariosDia=-1.5; // Pontuacao para mais de 3 dias ja preenchidos (Pontuacao a mais da acima)
-horariosPoints=-1.0; // Pontuacao caso horario (primeiro manha, ultimo manha, primeiro tarde e ultimo tarde)
-lastResp=4.0; // Segunda ou outra aula de mesma materia no mesmo dia
-preferPositiva=2.0; // Pontuacao da preferencia positiva
-preferNegativa=-2.0; // Negativa da acima
-bimestraisJuntos=10.0; // Colocar os horários bimestrais no mesmo tempo, uma vez que não podemos deixar um bimestral e um não bimestral dividindo o mesmo horário
+nHorariosDia=-1.0; // Pontuacao para cada dia ja preenchido no dia (-1.0)
+tresHorariosDia=-1.5; // Pontuacao para mais de 3 dias ja preenchidos (Pontuacao a mais da acima) (-1.5)
+horariosPoints=-1.0; // Pontuacao caso horario (primeiro manha, ultimo manha, primeiro tarde e ultimo tarde) (-1.0)
+lastResp=4.0; // Segunda ou outra aula de mesma materia no mesmo dia (4.0)
+preferPositiva=2.0; // Pontuacao da preferencia positiva (2.0)
+preferNegativa=-2.0; // Negativa da acima (-2.0)
+bimestraisJuntos=100.0; // Colocar os horários bimestrais no mesmo tempo, uma vez que não podemos deixar um bimestral e um não bimestral dividindo o mesmo horário
 IncentivoValidacao=-5.0; // Vamos colocar essa pontuação para que o programa evite os casos que são normalmente barrados na validação
+MesmoCampus=10.0; // Vamos dar preferência para que aulas no mesma campus sejam colocadas juntas.

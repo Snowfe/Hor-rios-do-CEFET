@@ -177,6 +177,7 @@ def cost_individual(horario, position, board, subjectPos, typeNum, sala='', bime
 
 
 def cost_board(board):
+    print('_')
     n_h_bimestrais = 0
     # Vamos calcular uma vez para cada bimestre como se fosse um quadr a parte
     points = loadData.getPoints('./data/preferencias.txt')
@@ -344,7 +345,7 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
     if not('2' in board.keys()):
         print(board.keys())
     if board[str(h_day)][typeNum][h_time] != 0: # Se horário preenchido 
-        if type(board[str(h_day)][typeNum][h_time]) == type(list()) and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
+        if type(board[str(h_day)][typeNum][h_time]) is list and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
             if len(board[str(h_day)][typeNum][h_time]) == 4:
                 if board[str(h_day)][typeNum][h_time][position[2]] != 0:
                     return INVALIDO, 'HORÁRIO JÁ OCUPADO 2 _________'
@@ -355,11 +356,10 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
                         if outros_horarios.subject == horario.subject:
                             return INVALIDO, f'MESMA MATÉRIA FICA EM LISTAS DIFERENTES _{outros_horarios.subject, horario.subject}'
             # Se horário estiver preenchido
-            #elif position[2] > 1:
-                #return INVALIDO, 'HORÁRIO NÃO CONPATÍVEL COM O TIPO DO BIMESTRAL'
             else:
                 for outros_horarios in board[str(h_day)][typeNum][h_time]:
                     if outros_horarios:
+                        # Se os outros horários da lista forem de tipos diferentes
                         if outros_horarios.type != horario.type or ('3,1,G' in horario.type and len(board[str(h_day)][typeNum][h_time]) != 4):
                             return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{outros_horarios.type, horario.type}'
                         
@@ -369,8 +369,6 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
         else: 
             return BREAK_INVALIDO, f'HORÁRIO JÁ OCUPADO 3 _tem um normal no lugar: {horario.type}'
     
-
-
     # Verificar também a parte dos professores
     if type(horario.teacher.schedule[str(h_day)][typeNum]) is int:
         print(horario, horario.teacher.schedule, horario.teacher.schedule[str(h_day)])
@@ -464,10 +462,19 @@ def bimestrals_organizer(lista_b):
                 print('ERROR: Tipo do horário não corresponde a nenhum dos requisitos')
             
 
-def messi_data(quadro):
+def save_teachers_schedule(teachers):
     """
-    vamos embaralhar os horários mantendo a sua funcionalidade
+    Vamos salvar os dados dos horários de cada professor, assim, se precisarmos voltar a eles depois não teria problema
     """
+    
+def actualize(teachers, new_teachers):
+    """
+    Vamos pegar os valores dos objetos que estamos usando e atualizá-los em função dos objetos que encontramos
+    """
+    for old in teachers:
+        for new in new_teachers:
+            if old.name == new.name:
+                old.schedule = new.schedule
 
 
 

@@ -81,5 +81,5 @@ class Horario:
         # self.position = None
 
     def __repr__(self):
-        return f'{self.teacher}-{self.subject}'
+        return f"{self.teacher}-{self.subject.split('-')[0]}"
 

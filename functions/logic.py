@@ -248,6 +248,7 @@ def cost_board(board):
                                                 result_value += points['lastResp']                                
                     
                     # Professor dando aula no dia que ele quer
+                    
                     for h in range(0, len(turno)):
                         if turno[h] != 0 and not(type(turno[h]) is list):
                             hor = turno[h]
@@ -304,6 +305,7 @@ def cost_board(board):
                                                     result_value += points['preferPositiva']
                                                 else:
                                                     result_value += points['preferNegativa']
+                                                    
                     typeNum += 1
         media += result_value
     return (media/4)
@@ -311,8 +313,11 @@ def cost_board(board):
 
 
 def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral=0):  # board é o quadro de horários
+    """
+    Vemos se um determinado horário pode ser colocado em uma determinada posição
+    Umas das funções mais usadas, sua eficiência é bem mais importante que as das demais.
+    """
     # Position = [day, hour]
-
     INVALIDO = -99
     BREAK_INVALIDO = -100 # para parar loops em analises bimestrais
 
@@ -387,8 +392,13 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
             # Se horário estiver preenchido
                 #Precisamos antes checar se as condições do horário estão corretas, se é compatível o horário que estamos colocando com o local em que ele será colocado
             if (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 4 and '1' == horario.type[2]) or (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 2 and '2,T' in horario.type) or (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 3 and '4,G' in horario.type):
-                if horario.teacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
-                    return INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 2 _______'
+                try: 
+                    if horario.teacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
+                        return INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 2 _______'
+                except:
+                    print('Posição e horário não estão de acordo', position[2], horario.type)
+                    if horario.teacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
+                        pass
 
         else: 
             return BREAK_INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 3 _______'
@@ -469,12 +479,39 @@ def bimestrals_organizer(lista_b):
                 print('ERROR: Tipo do horário não corresponde a nenhum dos requisitos')
             
 
-def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2, pb_1='Nada', pb_2='Nada'):
+def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2,positions_for_horaries, pb_1='Nada', pb_2='Nada'):
     """
     Dados 2 horários, trocamos eles de posição
     """
+
+
+    print('replace_h', end=' ')
+    for p in positions_for_horaries:
+        try:
+            if quadro[turma][p[0]][turno][p[1]]:
+                if quadro[turma][p[0]][turno][p[1]][p[2]]:
+                    if not(str(quadro[turma][p[0]][turno][p[1]][p[2]].teacher.schedule[p[0]][turno][p[1]][p[2]]).split('-')[-1] in str(quadro[turma][p[0]][turno][p[1]][p[2]])) or not(quadro[turma][p[0]][turno][p[1]][p[2]]):
+                        print('H1 não é o mesmo para professor')
+                        break
+                else:
+                    try:
+                        if not(str(quadro[turma][p[3]][turno][p[4]][p[5]].teacher.schedule[p[3]][turno][p[4]][p[5]]).split('-')[-1] in str(quadro[turma][p[3]][turno][p[4]][p[5]])):
+                            print('H2 não é o mesmo para professor')
+                            break
+                    except: pass
+        except:
+            if quadro[turma][p[0]][turno][p[1]]:
+                if not(str(quadro[turma][p[0]][turno][p[1]].teacher.schedule[p[0]][turno][p[1]]).split('-')[-1] in str(quadro[turma][p[0]][turno][p[1]])) or not(quadro[turma][p[0]][turno][p[1]]):
+                    print('H1, normal, está no lugar errado')
+                    break
+                else:
+                    try:
+                        if not(str(quadro[turma][p[3]][turno][p[4]].teacher.schedule[p[3]][turno][p[4]]).split('-')[-1] in str(quadro[turma][p[3]][turno][p[4]])):
+                            print('H2, normal, está no lugar errado')
+                            break
+                    except: pass
     if pb_1 != 'Nada':
-        quadro[turma][d1][turno][p1][pb_1] = h2
+        
         if type(quadro[turma][d1][turno][p1]) is list:
             quadro[turma][d1][turno][p1][pb_1] = h2
         else:
@@ -501,6 +538,7 @@ def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2, pb_1='Nada', pb_2='N
         
         if type(h1.teacher.schedule[d2][turno][p2]) is list:
             h1.teacher.schedule[d2][turno][p2][pb_2] = h1
+            #print('colocando h1 com lista')
         else:
             if '1' == h1.type[2]:
                 if not(h1.teacher.schedule[d2][turno][p2]): h1.teacher.schedule[d2][turno][p2] = [0, 0, 0, 0]
@@ -510,9 +548,11 @@ def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2, pb_1='Nada', pb_2='N
                 if not(h1.teacher.schedule[d2][turno][p2]): h1.teacher.schedule[d2][turno][p2] = [0, 0]
             # Colocamos o horário na posição
             h1.teacher.schedule[d2][turno][p2][pb_2] = h1
+            #print('colocando h1, []') #print(h1.teacher.schedule[d2][turno][p2][pb_2] == h1)
         if h2: # Se h2 não for 0
             if type(h2.teacher.schedule[d1][turno][p1]) is list:
                 h2.teacher.schedule[d1][turno][p1][pb_1] = h2
+                #print('colocando h2, com lista')
             else:
                 if '1' == h2.type[1]:
                     if not(h2.teacher.schedule[d1][turno][p1]): h2.teacher.schedule[d1][turno][p1] = [0, 0, 0, 0]
@@ -522,24 +562,28 @@ def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2, pb_1='Nada', pb_2='N
                     if not(h2.teacher.schedule[d1][turno][p1]): h2.teacher.schedule[d1][turno][p1] = [0, 0]
                 # Colocamos o horário na posição
                 h2.teacher.schedule[d1][turno][p1][pb_1] = h2
+                #print('colocando h2, []')  #print(h2.teacher.schedule[d1][turno][p1][pb_1] == h2)
+
         
     
 
     else: # Ambos os horários são normais
-        print('Não era para ter o pb_1 -> ', pb_1)
+        print('Era para passar por aqui? ', pb_1 == 'Nada', end=' ')
         quadro[turma][d1][turno][p1] = h2
         quadro[turma][d2][turno][p2] = h1
         h1.teacher.schedule[d2][turno][p2] = h1
         try: h2.teacher.schedule[d1][turno][p1] = h2
         except: pass   # Pode acontecer caso h2 seja 0
-
-    # TESTANDO UM ERRO
     try:
-        if quadro[turma][d2][turno][p2][pb_2] == 0:
-            print('Está saindo errado do replace_h')
+        if  h1.teacher.schedule[d2][turno][p2][pb_2] != h1 or h2.teacher.schedule[d1][turno][p1][pb_1] != h2:
+            print('Saindo errado do replace_h')
     except:
-        if quadro[turma][d2][turno][p2] == 0:
-            print('Normal está saindo errado do replace_h')
+        if h1.teacher.schedule[d2][turno][p2] != h1:
+            try: 
+                if h2.teacher.schedule[d1][turno][p1] == h2:
+                    print('Normal saindo errado do replace')
+            except: pass   # Pode acontecer caso h2 seja 0
+
         
 
 def print_quadro(quadro, horario, typeNum):
@@ -601,9 +645,12 @@ def generate_list_position(quadro, turno, turma):
     h1 não pode ser 0
     h2 tem que ser do mesmo tipo que h1
     """
+    print('generating list...')
     result = []
     for dia_1 in range(2, 7):
         dia_1 = str(dia_1)
+        if quadro[turma][dia_1].count(0) == len(quadro[turma][dia_1]):
+            continue
         for dia_2 in range(2, 7):
             dia_2 = str(dia_2)
             for p1 in range(0, len(quadro[turma][dia_1][turno])):
@@ -636,17 +683,39 @@ def generate_list_position(quadro, turno, turma):
                                 pb2 = random.randint(0, len(quadro[turma][dia_1][turno][p1])-1)
                                 result.append((dia_1, p1, pb1, dia_2, p2, pb2))
                                 if quadro[turma][dia_1][turno][p1][pb1] == 0:
-                                                print('Estamos adicionando um h1 == 0')
+                                    print('Estamos adicionando um h1 == 0')
                 else: # Se h1 for normal, temos que selecionar um h2 normal
                     for p2 in range(0, len(quadro[turma][dia_1][turno])):
                         if not(type(quadro[turma][dia_2][turno][p2]) is list):
                             result.append((dia_1, p1, dia_2, p2))
                             if quadro[turma][dia_1][turno][p1] == 0:
                                 print('Estamos adicionando um h1 == 0, normal')
+    for p in result:
+                try:
+                    if quadro[turma][p[0]][turno][p[1]][p[2]]:
+                        if not(str(quadro[turma][p[0]][turno][p[1]][p[2]].teacher.schedule[p[0]][turno][p[1]][p[2]]).split('-')[-1] in str(quadro[turma][p[0]][turno][p[1]][p[2]])) or not(quadro[turma][p[0]][turno][p[1]][p[2]]):
+                            print('GENERATING', quadro[turma][p[0]][turno][p[1]][p[2]].teacher.schedule[p[0]][turno][p[1]][p[2]], quadro[turma][p[0]][turno][p[1]][p[2]])
+                            break
+                    else:
+                        try:
+                            if not(str(quadro[turma][p[3]][turno][p[4]][p[5]].teacher.schedule[p[3]][turno][p[4]][p[5]]).split('-')[-1] in str(quadro[turma][p[3]][turno][p[4]][p[5]])):
+                                print('GENERATING', quadro[turma][p[0]][turno][p[1]][p[2]].teacher.schedule[p[0]][turno][p[1]][p[2]], quadro[turma][p[0]][turno][p[1]][p[2]])
+                                break
+                        except: pass
+                except:
+                    if not(str(quadro[turma][p[0]][turno][p[1]].teacher.schedule[p[0]][turno][p[1]]).split('-')[-1] in str(quadro[turma][p[0]][turno][p[1]])) or not(quadro[turma][p[0]][turno][p[1]]):
+                        print('GENERATING', quadro[turma][p[0]][turno][p[1]].teacher.schedule[p[0]][turno][p[1]][p[2]], quadro[turma][p[0]][turno][p[1]][p[2]])
+                        break
+                    else:
+                        try:
+                            if not(str(quadro[turma][p[3]][turno][p[4]].teacher.schedule[p[3]][turno][p[4]]).split('-')[-1] in str(quadro[turma][p[3]][turno][p[4]])):
+                                print('GENERATING', quadro[turma][p[0]][turno][p[1]].teacher.schedule[p[0]][turno][p[1]][p[2]], quadro[turma][p[0]][turno][p[1]][p[2]])
+                                break
+                        except: pass
     return result
                                 
                         
-def actualize_list_posittions(quadro, turma, turno, lista, d1, p1, d2, p2, h2, pb1=None, pb2=None):
+def actualize_list_posittions(quadro, turma, turno, lista, d1, p1, d2, p2, pb1=None, pb2=None):
     """
     Quando mudamos dois horários de posição, as respectivas posições para as quais tinhamos uma possível mudança passam a ser inválidas
     Vamos encontrar todas as posições que correspondiam ao h1 que mudamos, bem como todas que correspondiam ao h2 que mudamos
@@ -655,6 +724,15 @@ def actualize_list_posittions(quadro, turma, turno, lista, d1, p1, d2, p2, h2, p
     (d2 e p2) novas posições do horário 1
     (d1 e p1) novas posições do horario 2
     """
+    print('actualize list ...', end='')
+    if type(quadro[turma][d2][turno][p2]) is list:
+        if quadro[turma][d2][turno][p2][pb2].teacher.schedule[d2][turno][p2].count(0) == len(quadro[turma][d2][turno][p2][pb2].teacher.schedule[d2][turno][p2]):
+            quadro[turma][d2][turno][p2][pb2].teacher.schedule[d2][turno][p2] = 0
+        try:
+            if quadro[turma][d1][turno][p1][pb1].teacher.schedule[d1][turno][p1].count(0) == len(quadro[turma][d1][turno][p1][pb1].teacher.schedule[d1][turno][p1]):
+                quadro[turma][d1][turno][p1][pb1].teacher.schedule[d1][turno][p1] = 0
+        except: pass
+    
     try:
         if quadro[turma][d2][turno][p2][pb2] == 0:
             print('Já chegou errado para atualizar')
@@ -664,6 +742,7 @@ def actualize_list_posittions(quadro, turma, turno, lista, d1, p1, d2, p2, h2, p
     n_zeros_normais = 0
     n_zeros_bimestrais = 0
     valores_a_serem_acrescentados = []
+    valores_a_serem_removidos = []
     for valor in lista:
         if len(valor) == 4 and pb1 == None:
             if quadro[turma][valor[0]][turno][valor[1]] == 0:
@@ -673,55 +752,82 @@ def actualize_list_posittions(quadro, turma, turno, lista, d1, p1, d2, p2, h2, p
                 if quadro[turma][d2][turno][p2] == 0:
                     print('Adicionando 0 na hora de trocar 1 -> 2')
                 valores_a_serem_acrescentados.append((d2, p2, valor[2], valor[3]))
-                lista.remove(valor)
+                valores_a_serem_removidos.append(valor)
             elif(valor[2] == d1) and (valor[3] == p1):
                 valores_a_serem_acrescentados.append((valor[0], valor[1], d2, p2))
-                lista.remove(valor)
+                valores_a_serem_removidos.append(valor)
             elif (valor[0] == d2) and (valor[1] == p2): # Achamos um:
                 if quadro[turma][d1][turno][p1] == 0:
                     print('Adicionando 0 na hora de trocar 2 -> 1')
                 valores_a_serem_acrescentados.append((d1, p1, valor[2], valor[3]))
-                lista.remove(valor)
+                valores_a_serem_removidos.append(valor)
             elif(valor[2] == d2) and (valor[3] == p2):
                 valores_a_serem_acrescentados.append((valor[0], valor[1], d1, p1))
-                lista.remove(valor)
+                valores_a_serem_removidos.append(valor)
         elif len(valor) == 6 and pb1 != None:
-            if quadro[turma][valor[0]][turno][valor[1]][valor[2]] == 0:
-                n_zeros_bimestrais += 1
+            # Se tivermos alguma posição com uma lista vazia, transformamos ela em apenas 0 para podermos colocar qualquer horário ali.
+            if quadro[turma][valor[3]][turno][valor[4]]:
+                
+                if quadro[turma][valor[3]][turno][valor[4]].count(0) == len(quadro[turma][valor[3]][turno][valor[4]]):
+                    quadro[turma][valor[3]][turno][valor[4]] = 0
+                # Essa Nova posição ainda não está sendo acrescentada
+                    for positions in lista:
+                        if not((positions[0], positions[1], positions[2], valor[3], valor[4], valor[5]) in lista) and not((positions[0], positions[1], positions[2], valor[3], valor[4], valor[5]) in valores_a_serem_acrescentados):
+                            valores_a_serem_acrescentados.append((positions[0], positions[1], positions[2], valor[3], valor[4], valor[5]))
+                
+
             if (valor[0] == d1) and (valor[1] == p1) and (valor[2] == pb1):
                 valores_a_serem_acrescentados.append((d2, p2, pb2, valor[3], valor[4], valor[5]))
-                lista.remove(valor)
+                valores_a_serem_removidos.append(valor)
             elif (valor[3] == d1) and (valor[4] == p1) and (valor[5] == pb1):
                 valores_a_serem_acrescentados.append((valor[0], valor[1], valor[2], d2, p2, pb2))
-                lista.remove(valor)
+                valores_a_serem_removidos.append(valor)
 
             elif (valor[0] == d2) and (valor[1] == p2) and (valor[2] == pb2):
                 valores_a_serem_acrescentados.append((d1, p1, pb1, valor[3], valor[4], valor[5]))
-                lista.remove(valor)
+                valores_a_serem_removidos.append(valor)
             elif (valor[3] == d2) and (valor[4] == p2) and (valor[5] == pb2):
                 valores_a_serem_acrescentados.append((valor[0], valor[1], valor[2], d1, p1, pb1))
-                lista.remove(valor)
-    n_alterados = 0
-    for valor in valores_a_serem_acrescentados + lista:
-        if len(valor) == 4:
-            if quadro[turma][valor[0]][turno][valor[1]] == 0:
-                n_alterados += 1
-        else:
-            try: 
-                if quadro[turma][valor[0]][turno][valor[1]][valor[2]] == 0:
-                    n_alterados += 1
-            except: print('Era para ser lista, mas está aparecendo um inteiro', quadro[turma][valor[0]][turno][valor[1]])
-    print(f'Numero de zeros é <{n_zeros_normais}> + <{n_zeros_bimestrais}> = <{n_zeros_normais + n_zeros_bimestrais}> e <{n_alterados}> continuam errados')
+                valores_a_serem_removidos.append(valor)
+    for valor in valores_a_serem_removidos:
+        lista.remove(valor)
+    
+    for p in lista:
+        try:
+            if quadro[turma][p[0]][turno][p[1]][p[2]]:
+                if not(str(quadro[turma][p[0]][turno][p[1]][p[2]].teacher.schedule[p[0]][turno][p[1]][p[2]]).split('-')[-1] in str(quadro[turma][p[0]][turno][p[1]][p[2]])):
+                    print('ERRO no actualize list')
+                    break
+            else:
+                try:
+                    if not(str(quadro[turma][p[3]][turno][p[4]][p[5]].teacher.schedule[p[3]][turno][p[4]][p[5]]).split('-')[-1] in str(quadro[turma][p[3]][turno][p[4]][p[5]])):
+                        print('ERRO no actualize list')
+                        break
+                except: pass
+        except:
+            if not(str(quadro[turma][p[0]][turno][p[1]].teacher.schedule[p[0]][turno][p[1]]).split('-')[-1] in str(quadro[turma][p[0]][turno][p[1]])):
+                print('ERRO no actualize list')
+                break
+            else:
+                try:
+                    if not(str(quadro[turma][p[3]][turno][p[4]].teacher.schedule[p[3]][turno][p[4]]).split('-')[-1] in str(quadro[turma][p[3]][turno][p[4]])):
+                        print('ERRO no actualize list')
+                        break
+                except: pass
     return lista + valores_a_serem_acrescentados
 
 def actualize(teachers, new_teachers):
     """
     Vamos pegar os valores dos objetos que estamos usando e atualizá-los em função dos objetos que encontramos
     """
+    print('actualize...')
     for old in teachers:
         for new in new_teachers:
             if old.name == new.name:
-                old.schedule = new.schedule
+                if old.schedule != new.schedule:
+                    print('|', end=' ')
+                    old.schedule = new.schedule
+                    break
 
 
 

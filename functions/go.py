@@ -315,13 +315,13 @@ def mainFunction():  # A função principal do código, que retornará o resulta
                             horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0]
                     try:
 
-                        horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
+                        horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] = horario #f"{horario.turm[0]}-{str(horario).split('-')[1]}"
                     except:
                         print(horario.type, position[2], horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])], motivo)
                     teachers_copy[teachersNames.index(horario.teacher.name)].schedule[position_info[0]][typeNum][
                         int(position_info[1])] = list(horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])])
                 else:
-                    horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
+                    horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = horario #f"{horario.turm[0]}-{str(horario).split('-')[1]}"
 
                     teachers_copy[teachersNames.index(horario.teacher.name)].schedule[position_info[0]][typeNum][
                         int(position_info[1])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
@@ -361,6 +361,19 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                  de modo que quando o horário que não possuia lugar já possuir um lugar para ser colocado, nós retornamos e paramos o código
                  Seu segundo uso é para quando já terminamos de organizar o quadro, e portanto podemos apenas usar a função para melhorar o resultado final.
     """
+    # Primeiramente, vamos ver se não tem nada de errado nas informações que estamos recebendo.
+    """
+    for turma in quadro.keys():
+        for day in range(2, 7):
+            day = str(day)
+            for turno in range(0, 3):
+                for p in range(0, len(quadro[turma][day][turno])):
+                    if type(quadro[turma][day][turno][p]) is list:
+                        for pb in range(0, len(quadro[turma][day][turno][p])):
+                            if quadro[turma][day][turno][p][pb]:
+                                if len(quadro[turma][day][turno][p][pb].teacher.schedule[day][turno][p]) != len(quadro[turma][day][turno][p])
+    """
+
     keep_going = True
     times = 0
     # Inicialmos com uma grade horária funcional
@@ -395,14 +408,36 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
         quadro = better_board[0]
         logic.actualize(teachers, better_board[2])
 
+        turma = novo_horario.turm[0]
+        turno = typeNum
+
+        for dia1 in range(2, 7):
+            dia1 = str(dia1)
+            for po1 in range(0, len(quadro[turma][dia1][turno])):
+                if type(quadro[turma][dia1][turno][po1]) is list:
+                    for pbo1 in range(0, len(quadro[turma][dia1][turno][po1])):
+                        try:
+                            if quadro[turma][dia1][turno][po1][pbo1]:
+                                if not(str(quadro[turma][dia1][turno][po1][pbo1].teacher.schedule[dia1][turno][po1][pbo1]).split('-')[-1] in str(quadro[turma][dia1][turno][po1][pbo1])) or not(quadro[turma][dia1][turno][po1][pbo1]):
+                                    print('Bem no começo B1')
+                        except:
+                            print('Deu erro bem no começo: ', quadro[turma][dia1][turno][po1][pbo1], pbo1, quadro[turma][dia1][turno][po1][pbo1].teacher.schedule[dia1][turno])
+                else:
+                    if quadro[turma][dia1][turno][po1]:
+                        if not(str(quadro[turma][dia1][turno][po1].teacher.schedule[dia1][turno][po1]).split('-')[-1] in str(quadro[turma][dia1][turno][po1])) or not(quadro[turma][dia1][turno][po1]):
+                            print('Bem no começo N1')
+
+
+        
+
         # Vamos fazer uma lista com os dias que possui 0, são esses dias que devemos dar preferência na hora de selecionar o dia_2
         #days_zero = logic.days_with_zero(quadro, typeNum, novo_horario)
         # Depois temos que abrir espaço para que os demais turnos também sejam incluidos
         
         positions_for_horaries = logic.generate_list_position(better_board[0], typeNum, turma=novo_horario.turm[0])
         # Vamos selecionar aletóriamente 10 horários de uma turma e misturar a posição deles
-        for time in range(0, int(20 + better_board[1] // 500)): # vezes que vamos realizar a mudança em um horário
-            print('_', end='')
+        for time in range(1, int(50 + len(positions_for_horaries) // 4)): # vezes que vamos realizar a mudança em um horário
+            print(f'_', end='')
             de_acordo = False
             bimestral_2_is_zero = False
             # Escolhemos uma turma aleatória onde faremos as mudanças
@@ -422,12 +457,30 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                 #turma = random.choice(possible_classes)
                 
             """
-            if find_one_better:
-                positions_for_horaries = logic.generate_list_position(better_board[0], typeNum, turma=novo_horario.turm[0])
-                logic.actualize(teachers, better_board[2]) # Mudamos tanto o quadro das salas quanto o dos professor para o que está melhor
-                find_one_better = False
-
             
+            if find_one_better or time % int(100) == 0:
+                print('antes -> ', len(positions_for_horaries))
+                positions_for_horaries = logic.generate_list_position(quadro, typeNum, turma=novo_horario.turm[0])
+                print('depois -> ', len(positions_for_horaries))
+                #logic.actualize(teachers, better_board[2]) # Mudamos tanto o quadro das salas quanto o dos professor para o que está melhor
+                find_one_better = False
+            
+            #positions_for_horaries = logic.generate_list_position(quadro, typeNum, turma=novo_horario.turm[0])
+            #print('antes -> ', len(positions_for_horaries))
+            #old_positions = copy.deepcopy(positions_for_horaries)
+            #positions_for_horaries = logic.generate_list_position(quadro, typeNum, turma=novo_horario.turm[0])
+            #print('depois -> ', len(positions_for_horaries))
+            #print('Os horários que não tem em comum')
+            """
+            for p in positions_for_horaries:
+                if not(p in old_positions):
+                    if len(p) == 6:
+                        print(quadro[turma][p[0]][turno][p[1]][p[2]], end=' || ')
+                        try: print(quadro[turma][p[3]][turno][p[4]][p[5]])
+                        except: print(quadro[turma][p[3]][turno][p[4]])
+                    else:
+                        print(quadro[turma][p[0]][turno][p[1]], quadro[turma][p[2]][turno][p[3]])
+                        """
             # Ainda podemos criar outro processo para selecionarmos o turno e a turma com base nas turmas que o professor da aula ou até mesmo todas elas
             turma = novo_horario.turm[0]
             turno = typeNum
@@ -492,8 +545,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                 try:
                     if not(str(h_bimestral_2.teacher.schedule[dia_2][turno][p_2][pb_2]).split('-')[-1] in str(h_bimestral_2)):
                         print(f'Na hora de gerar, o do professor já não é o mesmo que o horario, BIMESTRAL2, professor{h_bimestral_2.teacher.schedule[dia_2][turno][p_2][pb_2]}, quadro: {h_bimestral_2}')
-                except:
-                    pass
+                except: pass
 
                 
             else:   
@@ -560,8 +612,31 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                     TESTE_passou_pela_troca = True
                     # Vamos trocar eles de lugar
                     logic.replace_h(quadro, turma, turno, h_bimestral_1, dia_1, p_1, h_bimestral_2, dia_2, p_2,positions_for_horaries, pb_1=pb_1, pb_2=pb_2)
+                    for p in positions_for_horaries:
+                        try:
+                            if quadro[turma][p[0]][turno][p[1]][p[2]]:
+                                if not(str(quadro[turma][p[0]][turno][p[1]][p[2]].teacher.schedule[p[0]][turno][p[1]][p[2]]).split('-')[-1] in str(quadro[turma][p[0]][turno][p[1]][p[2]])):
+                                    print('556, depois do replaceh')
+                                    break
+                            else:
+                                try:
+                                    if not(str(quadro[turma][p[3]][turno][p[4]][p[5]].teacher.schedule[p[3]][turno][p[4]][p[5]]).split('-')[-1] in str(quadro[turma][p[3]][turno][p[4]][p[5]])):
+                                        print('556, depois do replaceh')
+                                        break
+                                except: pass
+                        except:
+                            if not(str(quadro[turma][p[0]][turno][p[1]].teacher.schedule[p[0]][turno][p[1]]).split('-')[-1] in str(quadro[turma][p[0]][turno][p[1]])):
+                                print('556, depois do replaceh')
+                                break
+                            else:
+                                try:
+                                    if not(str(quadro[turma][p[3]][turno][p[4]].teacher.schedule[p[3]][turno][p[4]]).split('-')[-1] in str(quadro[turma][p[3]][turno][p[4]])):
+                                        print('556, depois do replaceh')
+                                        break
+                                except: pass
+
                     positions_for_horaries = logic.actualize_list_posittions(quadro,turma, turno, positions_for_horaries,
-                                                                            dia_1, p_1, dia_2, p_2, pb1=pb_1, pb2=pb_2)
+                                                                             dia_1, p_1, dia_2, p_2, pb1=pb_1, pb2=pb_2)
 
                     for p in positions_for_horaries:
                         try:
@@ -590,7 +665,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                     value = logic.cost_board(quadro)
                     if value > better_board[1]:
                         teachers_version = copy.deepcopy(teachers)
-                        better_board = (quadro, value, teachers_version)
+                        better_board = (copy.deepcopy(quadro), value, teachers_version)
                         print('^', end='')
                         find_one_better = True
                     
@@ -687,7 +762,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                     value = logic.cost_board(quadro)
                     if value > better_board[1]:
                         teachers_version = copy.deepcopy(teachers)
-                        better_board = (quadro, value, teachers_version)
+                        better_board = (copy.deepcopy(quadro), value, teachers_version)
                         print('^', end='')
                         find_one_better = True
 
@@ -705,8 +780,8 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                     quadro[turma][dia_1][turno][p_1] = horario_1
                     quadro[turma][dia_2][turno][p_2] = horario_2
                     horario_1.teacher.schedule[dia_1][turno][p_1] = horario_1
-                    try: horario_2.teacher.schedule[dia_2][turno][p_2] = horario_2
-                    except: pass # No caso de ser 0
+                    if horario_2: horario_2.teacher.schedule[dia_2][turno][p_2] = horario_2
+                    else: pass # No caso de ser 0
             
             for p in positions_for_horaries:
                 try:

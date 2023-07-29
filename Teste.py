@@ -1,11 +1,17 @@
 import copy
-class T():
-    def __init__(self, lista) -> None:
-        self.lista = lista
+lista = [1, 2, [3, 4, [5, 6]]]
+lista2 = copy.deepcopy(lista)
 
-x = T([1,2,3,4])
-y = T([5,6,7,8])
-valores = [x, y]
-values = copy.deepcopy(valores)
-values[0].lista.append('X')
-print(x.lista, values[0].lista)
+lista[2][2][1] = 7
+
+print(lista)
+print(lista2)
+
+lista2[2][2] = lista[2][2]
+lista[2][2][0] += 1
+
+print(lista)
+print(lista2)
+
+lista3 = [0 for c in range(0, 10)]
+print(lista3)

@@ -1,17 +1,15 @@
-import copy
-lista = [1, 2, [3, 4, [5, 6]]]
-lista2 = copy.deepcopy(lista)
+listas_juntas = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2]
 
-lista[2][2][1] = 7
 
-print(lista)
-print(lista2)
+resultado = []
+c = 0
+while len(listas_juntas) != 0:
+    if c % 2 == 0:
+        resultado.append(listas_juntas[0])
+        listas_juntas = listas_juntas[1:]
+    else:
+        resultado.append(listas_juntas[-1])
+        listas_juntas = listas_juntas[:-1]
+    c += 1
 
-lista2[2][2] = lista[2][2]
-lista[2][2][0] += 1
-
-print(lista)
-print(lista2)
-
-lista3 = [0 for c in range(0, 10)]
-print(lista3)
+print(resultado)

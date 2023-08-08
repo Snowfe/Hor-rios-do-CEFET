@@ -1,9 +1,10 @@
-nHorariosDia=-1.0; // Pontuacao para cada dia ja preenchido no dia (-1.0)
-tresHorariosDia=-1.5; // Pontuacao para mais de 3 dias ja preenchidos (Pontuacao a mais da acima) (-1.5)
+nHorariosDia=-1.0; // Pontuacao para cada horario ja preenchido no dia (-1.0)
+tresHorariosDia=1.5; // Pontuacao para mais de 3 horarios ja preenchidos (Pontuacao a mais da acima) (-1.5)
 horariosPoints=-1.0; // Pontuacao caso horario (primeiro manha, ultimo manha, primeiro tarde e ultimo tarde) (-1.0)
 lastResp=4.0; // Segunda ou outra aula de mesma materia no mesmo dia (4.0)
 preferPositiva=2.0; // Pontuacao da preferencia positiva (2.0)
 preferNegativa=-2.0; // Negativa da acima (-2.0)
-bimestraisJuntos=30.0; // Colocar os horários bimestrais no mesmo tempo, uma vez que não podemos deixar um bimestral e um não bimestral dividindo o mesmo horário
-MesmoCampus=10.0; // Vamos dar preferência para que aulas no mesma campus sejam colocadas juntas.
-Espaco_no_mesmo_lugar=10.0; // Se a sala e o professor tiverem um zero no mesmo lugar eles são mais propícios a terem posição para colocar um próximo horário
+bimestraisJuntos=20.0; // Colocar os horários bimestrais no mesmo tempo, uma vez que não podemos deixar um bimestral e um não bimestral dividindo o mesmo horário
+Espaco_no_mesmo_lugar=2.0; // Se a sala e o professor tiverem um zero no mesmo lugar eles são mais propícios a terem posição para colocar um próximo horário
+Dia_vazio=15.0; // Privilegiar se o dia estiver sem nenhum horário preenchido ainda.
+Listas_iguais=10.0; // Se as listas forem iguais, é mais fácil de conciliar horários de campus diferentes.

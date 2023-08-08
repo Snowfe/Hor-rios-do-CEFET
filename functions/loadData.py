@@ -40,6 +40,7 @@ def organize_table(board):
     Horários não bimestrais primeiro, horários bimestrais ocupam espaço indefinido podendo estar juntos ou não.
     Horários no campus 2 primeiro, apenas algumas turmas tem aulas no c2, sendo as do c2 a minoria dos horários, colocálos primeiro facilita não dar erro.
     """
+    """
     horarios_normais = []
     horarios_bimestrais = []
     h_b1 = []
@@ -71,18 +72,38 @@ def organize_table(board):
         else:
             print('Errorrrrrrrrrrr', h, h.type)
     return horarios_normais + h_b4 + h_b2 + h_4G + h_b1
-    
+    """
+    horarios_do_c1 = []
+    horarios_do_c2 = []
+    for h in board:
+        if '1' in h.local:
+            horarios_do_c1.append(h)
+        else:
+            horarios_do_c2.append(h)
+    listas_juntas = horarios_do_c1 + horarios_do_c2
+    resultado = []
+    c = 0
+    while len(listas_juntas) != 0:
+        if c % 2 == 0:
+            resultado.append(listas_juntas[0])
+            listas_juntas = listas_juntas[1:]
+        else:
+            resultado.append(listas_juntas[-1])
+            listas_juntas = listas_juntas[:-1]
+        c += 1
+    return resultado # [c1, c2, c1, c2, ...]
+
 def organizando_dados_da_planilha():
     # =================== Pegando os dados que nós fornecemos
     try:
-        teachersData = loadData.getDatabase('Planilha dos horários.xlsx') ##  # Leitura inicial da planilha
+        teachersData = getDatabase('Planilha dos horários.xlsx') ##  # Leitura inicial da planilha
         # A biblioteca substitui o NA por 0, assim, o seguinte código coloca de volta os nomes dos subgrupos que foram substituidos
         for i in range(0, len(teachersData['Sub-Grupo'])):
             if str(teachersData['Sub-Grupo'][i]) == '0':
                 teachersData['Sub-Grupo'][i] = 'NA'
-        teachersColumns = loadData.getDatabase('Planilha dos horários.xlsx', get="columns") ##
-        roomsData = loadData.getDatabase('Planilha sala.xlsx') # Leitura inicial da planilha de salas
-        pointsData = loadData.getPoints('./data/preferencias.txt')  # Leitura das pontuações para o cost
+        teachersColumns = getDatabase('Planilha dos horários.xlsx', get="columns") ##
+        roomsData = getDatabase('Planilha sala.xlsx') # Leitura inicial da planilha de salas
+        pointsData = getPoints('./data/preferencias.txt')  # Leitura das pontuações para o cost
     except Exception as e:
         print(f"Houve um erro ao tentar pegar os dados das planilhas.\n{e}")
 

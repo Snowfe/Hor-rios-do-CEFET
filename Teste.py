@@ -1,5 +1,10 @@
-listas_juntas = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2]
 
+
+l1 = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+l2 = [2, 2, 2, 2, 2, 2]
+
+listas_juntas = l1 + l2
+print(listas_juntas)
 
 resultado = []
 c = 0

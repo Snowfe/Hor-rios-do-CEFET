@@ -77,10 +77,10 @@ def getBetterHour(horario, board, subjectPos, typeNum):
     for m, n in motivos_do_erro.items():
         if maior <= n: 
             maior = n
-            motivo_moda = m
+            motivo = m
     
     if result == '':
-        try: return 'ERROR', motivo_moda # Isso vai acontecer quando não acharmos uma posição válida par ao horário, e nesse caso toda a grade de horários dessa possibilidade não pode ser usada
+        try: return 'ERROR', motivo # Isso vai acontecer quando não acharmos uma posição válida par ao horário, e nesse caso toda a grade de horários dessa possibilidade não pode ser usada
         except: 
             raise Exception(f'Não tem a moda do motivo {len(motivos_do_erro.values())}, {motivos_do_erro.values()}')
     else:
@@ -336,13 +336,13 @@ def cost_board(board, typeNum=False, in_optimizer=False, teachers=[], novo_horar
                         if turno[h] != 0 and turno[h+1] != 0:
                             if not(type(turno[h]) is list or type(turno[h+1]) is list) and turno[h] != 0 and turno[h+1] != 0:
                                 if turno[h].subject == turno[h+1].subject:
-                                    result_value += points['lastResp']
+                                    result_value = result_value + points['lastResp'] if not(in_optimizer) else result_value + points['lastResp']*5
                             elif (type(turno[h]) is list) and (type(turno[h+1]) is list) and b == 0:
                                 if len(turno[h]) == len(turno[h+1]):
                                     for count in range(0, len(turno[h])):
                                         if turno[h][count] and turno[h+1][count]:
                                             if turno[h][count].subject == turno[h+1][count].subject:
-                                                result_value += points['lastResp']
+                                                result_value = result_value + points['lastResp'] if not(in_optimizer) else result_value + points['lastResp']*5
                         elif turno[h] == 0 and turno[h+1] == 0:
                             result_value += points['lastResp']/2                                
                     
@@ -512,6 +512,8 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
         raise Exception('Horário no professor aparece com 0', horario, horario.teacher.schedule, horario.teacher.schedule[str(h_day)])
     if horario.teacher.schedule[str(h_day)][typeNum][h_time] != 0: # Se horário preenchido 
         if type(horario.teacher.schedule[str(h_day)][typeNum][h_time]) is list and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
+            
+            
             if not(0 in horario.teacher.schedule[str(h_day)][typeNum][h_time]):
                 return BREAK_INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 1 _______'
             
@@ -527,7 +529,7 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
                         pass
             else:
                 return INVALIDO, 'TIPO DO PROFESSOR E DO HORÁRIO NÃO CORRESPONDEM ______'
-
+            
         else: 
             return BREAK_INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 3 _______'
 
@@ -1304,13 +1306,25 @@ def get_weights(lista, quadro, turma, turno, novo_horario, finishing=False):
     
     #dias_no_mesmo_campus = []
     if bigger[1]:
-        for p in lista:
-            if p[0] == bigger[0] and not(bigger[0] in dias_no_mesmo_campus):
-                pesos.append(20)
-            elif len(p) == 6 and p[3] == bigger[0]:
-                pesos.append(0.5)
-            else:
-                pesos.append(1)
+        if turma == novo_horario.turm[0]:
+            for p in lista:
+                if p[0] == bigger[0] and not(bigger[0] in dias_no_mesmo_campus):
+                    pesos.append(20)
+                elif len(p) == 6 and p[3] == bigger[0]:
+                    pesos.append(0.5)
+                else:
+                    pesos.append(1)
+        else:
+            for p in lista:
+                if len(p) == 4:
+                    if quadro[turma][p[0]][turno][p[1]].teacher == novo_horario.teacher:
+                        pesos.append(40)
+                    else: pesos.append(1)
+                else:
+                    if quadro[turma][p[0]][turno][p[1]][p[2]].teacher == novo_horario.teacher:
+                        pesos.append(40)
+                    else: pesos.append(1)
+
     if len(pesos) == 0:
         pesos = [1 for c in range(0, len(lista))]
     for c in range(0, len(lista)):

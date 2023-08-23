@@ -1,6 +1,6 @@
 nHorariosDia=-1.0; // Pontuacao para cada horario ja preenchido no dia (-1.0)
 tresHorariosDia=1.5; // Pontuacao para mais de 3 horarios ja preenchidos (Pontuacao a mais da acima) (-1.5)
-horariosPoints=-1.0; // Pontuacao caso horario (primeiro manha, ultimo manha, primeiro tarde e ultimo tarde) (-1.0)
+horariosPoints=-0.5; // Pontuacao caso horario (primeiro manha, ultimo manha, primeiro tarde e ultimo tarde) (-1.0)
 lastResp=6.0; // Segunda ou outra aula de mesma materia no mesmo dia (4.0)
 preferPositiva=2.0; // Pontuacao da preferencia positiva (2.0)
 preferNegativa=-2.0; // Negativa da acima (-2.0)

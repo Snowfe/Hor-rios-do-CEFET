@@ -77,6 +77,7 @@ def organize_table(board):
     normais_do_c1 = []
     horarios_do_c2 = []
     normais_do_c2 = []
+    
     for h in board:
         if '1' in h.local:
             if '1' == h.type[2]: horarios_do_c1.insert(0, h)
@@ -88,7 +89,7 @@ def organize_table(board):
             else: horarios_do_c2.insert(0, h)
 
     listas_juntas = horarios_do_c1 + normais_do_c1 + normais_do_c2 + horarios_do_c2
-    
+
     resultado = []
     c = 0
     while len(listas_juntas) != 0:

@@ -27,6 +27,7 @@ def mainFunction():  # A função principal do código, que retornará o resulta
     # =================== Pegando os dados que nós fornecemos
     try:
         teachersData = loadData.getDatabase('Planilha dos horários.xlsx') ##  # Leitura inicial da planilha
+
         # A biblioteca substitui o NA por 0, assim, o seguinte código coloca de volta os nomes dos subgrupos que foram substituidos
         for i in range(0, len(teachersData['Sub-Grupo'])):
             if str(teachersData['Sub-Grupo'][i]) == '0':
@@ -41,27 +42,31 @@ def mainFunction():  # A função principal do código, que retornará o resulta
 
     classesNames = []  # -- Turmas
     classes = []  # Lista de objetos de cada turma
-
+    """
     for i in range(12, len(teachersColumns)):  # Pega apenas as matérias
         classesNames.append(teachersColumns[i])
-
+    
+    #for i in range(0, len)
     for index, turm in enumerate(classesNames):  # Transforma cada turma em um objeto de uma classe
         for i in range(1, 4):  # Turma para cada ano
             for group in ['A', 'B', 'NA', 'NB']:  # Adiciona os subgrupos A e B para todas as turmas
                 classes.append(c.Turm(turm, str(i), group))
-
+    """
+    classes = criar_as_salas(teachersData)
+    
     teachersNames = []  # -- Professores
     teachers = []  # Lista de objetos de cada professor
 
     for index, teacher in enumerate(teachersData["Professor"]):  # Transforma cada professor em um objeto de uma classe
         horaries = {}  # Horários para cada turma e matéria
         for i in range(12, len(teachersColumns)):   # SE ACRESCENTAR OU TIRAR COLUNA NA TABELA, TEM QUE MUDAR O VALOR AQUI
-            horaries[
-                    f"{teachersColumns[i]}-" + 
-                    f'{teachersData["Ano"][index]}' + 
-                    f'{teachersData["Sub-Grupo"][index]}' + 
-                    f'|{int(teachersData["Numero de grupos"][index])},{int(teachersData["Numero de bimestres"][index])},{teachersData["Grupo"][index]}'] = int(
-                teachersData[f"{teachersColumns[i]}"][index])
+            
+            if teachersData[f"{teachersColumns[i]}"][index]:
+            
+                horaries[
+                        f"{teachersColumns[i]}-" + f'{teachersData["Ano"][index]}' + f'{teachersData["Sub-Grupo"][index]}' + 
+                        f'|{int(teachersData["Numero de grupos"][index])},{int(teachersData["Numero de bimestres"][index])},{teachersData["Grupo"][index]}'] = int(
+                    teachersData[f"{teachersColumns[i]}"][index])
 
 
         if not (teacher in teachersNames):
@@ -176,11 +181,9 @@ def mainFunction():  # A função principal do código, que retornará o resulta
                         # Vamos printar os valores dos professores também
                         logic.print_quadro(quadro, horario, typeNum)
                         ERRO_NOS_HORARIOS = True
-                        break 
+                        break
                     else:
                         quadro = new_board
-                        if quadro != new_board:
-                            print('Não são iguais')
 
                 position_info = position.split(';')
 
@@ -197,11 +200,13 @@ def mainFunction():  # A função principal do código, que retornará o resulta
                     # E em seguida colocamos o horário bimestral nessa posição
                     if quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] != 0:
                         print(f'HORARIO JÁ OCPUADO:::::::  {quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])][int(position_info[2])]}, {horario}')
+                        raise Exception('Horário já ocupado')
                     try: quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] = horario
                     except:
                         print('Posição inválida', position_info, typeNum)
                         print(len(quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])]), horario, horario.type)
                         print(quadro[position_info[3]][position_info[0]][typeNum])
+                        raise Exception('Horário Inválido')
 
                         return KeyError
                     
@@ -248,9 +253,10 @@ def mainFunction():  # A função principal do código, que retornará o resulta
         except:
             bestSchedule.append([quadro.copy(), pontuacao, copy.deepcopy(teachers_copy)])
 
-        print(time, pontuacao)
+        print(time, 'Resultado', pontuacao)
         print('Finalizando...')
         quadro = Optmizer(quadro, teachers, finishing=True)
+        print('Nova pontuação final: ', logic.cost_board(quadro))
         break
 
     horarios = random.choice(bestSchedule)
@@ -281,35 +287,38 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
     else:
         better_board = (logic.save_board(quadro), logic.cost_board(quadro_base, in_optimizer=True, novo_horario=novo_horario), copy.deepcopy(teachers))
     find_one_better = False
-    lista_com_trocas_feitas = []
 
+    reset = False
 
     # Começamos a organizá-la
     while True:
+        
+        if finishing: print('.')
+
         print('\n')
         if not(finishing):
             if '0' in novo_horario.type: print('    NORMAL', end=' ')
             else: print(f'   BIMESTRAL', end=' ')
         
+        # É aqui que decidimos a hora de parar o código caso não ache um resultado, ou esteja apenas finalizando
         if find_one_better: times = 0
-        elif times == 30 and finishing: return better_board[0]
-
+        elif times == 30 and finishing: return better_board[0] # Quando está apenas finalizando
+        elif times == 50:                                      # Quando não acha resultado
+            reset = True
+            break
         times += 1
         
         # Criamos a cópia do quadro, continuamos atualizando o melhor estado
         quadro = logic.save_board(better_board[0])
         logic.actualize(teachers, better_board[2])
-
+        
         turma, positions_for_horaries = logic.select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, just_zeros=not(finishing))
         print(turma, end='')
-        turno = typeNum
-        if find_one_better:
-            lista_com_trocas_feitas.append(trocas)
-            if not(finishing): 
-                logic.print_quadro(better_board[0], novo_horario, turno)
-                #logic.TESTANDO_POSITIONS(better_board[0], novo_horario.turm[0], typeNum, subjectPos, novo_horario)
 
-            find_one_better = False
+        turno = typeNum
+        if find_one_better and not(finishing): 
+            logic.print_quadro(better_board[0], novo_horario, turno)
+        find_one_better = False
 
         #logic.remove_already_check_positions(positions_for_horaries, already_check, 4)
         trocas = 0
@@ -338,10 +347,6 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
             # Adicionamos elas a lista de posições que já realizamos a troca.
             already_check.append(random_one)
             
-            #logic.TESTANDO_erros(quadro, turma, turno, positions_for_horaries)
-            
-            if random_one in positions_for_horaries:
-                print('Ainda está aqui!!!, ', positions_for_horaries.count(random_one))
             # Selecionamos o horário que corresponde a essa posição específica
             if len(random_one) == 6:
                 dia_1 = random_one[0]
@@ -434,15 +439,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                     # Vemos se já é o bastante para colocar o novo_horario em algum lugar
                     if not(finishing):
                         position, motivo = logic.getBetterHour(novo_horario, quadro[novo_horario.turm[0]], subjectPos, typeNum)
-                        if position != 'ERROR':
-                            #print('passando por aqui 4')
-                            print(turma, position)
-                            lista_com_trocas_feitas.append(trocas)
-                            total = 0
-                            for t in lista_com_trocas_feitas:
-                                total += t
-                            print('TOTAL -> ', total/len(lista_com_trocas_feitas))
-                            return quadro, position
+                        if position != 'ERROR': return quadro, position
                 else: # Se não for válido deixamos de novo do jeito que era
                     time -= 1
                     quadro[turma][dia_1][turno][p_1][pb_1] = h_bimestral_1
@@ -493,14 +490,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                     # Vemos se já é o bastante para colocar o novo_horario em algum lugar
                     if not(finishing):
                         position, motivo = logic.getBetterHour(novo_horario, quadro[novo_horario.turm[0]], subjectPos, typeNum)
-                        if position != 'ERROR':
-                            lista_com_trocas_feitas.append(trocas)
-                            total = 0
-                            for t in lista_com_trocas_feitas:
-                                total += t
-                            print(total/len(lista_com_trocas_feitas))
-                            print(turma, position)
-                            return quadro, position
+                        if position != 'ERROR': return quadro, position
                         
                 # Se não for válido recolocamos os antigos horários nas posições
                 else:
@@ -513,3 +503,22 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
 
             #logic.TESTANDO_erros(quadro, turma, turno, positions_for_horaries)
         logic.TESTANDO_erros(quadro, turma, turno, positions_for_horaries)
+
+
+    if reset:
+        print(' ')
+        print('Recomeçando de novo ...')
+        mainFunction()
+
+def criar_as_salas(planilha):
+    turmas = []
+    objetos_turmas = []
+
+    for i in range(0, len(list(planilha.values())[0])):
+        for d in list(planilha.keys())[12:]:
+            if planilha[d][i] != 0:
+                if not((f"{d}-{str(planilha['Ano'][i])}{planilha['Sub-Grupo'][i]}") in turmas):
+                    objetos_turmas.append(c.Turm(d, planilha['Ano'][i], planilha['Sub-Grupo'][i]))
+                    turmas.append(f"{d}-{str(planilha['Ano'][i])}{planilha['Sub-Grupo'][i]}")
+    print(turmas)
+    return objetos_turmas

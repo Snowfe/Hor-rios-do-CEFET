@@ -22,13 +22,17 @@ def getDatabase(path, get="dict"): # Retorna um dicionário com os itens, como a
 def getPoints(path, desc=False): # Retorna um dicionário com as pontuações
     with open(path) as file:
         text = file.readlines() # Lista das linhas do arquivo .txt
-
+    soma = 0
     points = {}
     for line in text: # Salvando no dicionário
         if not desc:
             points[f"{line.split('=')[0]}"] = float(line.split(';')[0].split('=')[1])
+            soma += float(line.split(';')[0].split('=')[1])
         else:
             points[f"{line.split('=')[0]}"] = str(line.split('//')[1]) # Descrição de cada
+    
+    for k in points.keys():
+        points[k] = (points[k]/soma) * 10
 
     return points
 

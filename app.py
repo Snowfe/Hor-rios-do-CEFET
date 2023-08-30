@@ -12,8 +12,12 @@ limitsRoom = set()
 
 def start():
     print('Criando novos horários...')
-    #try:
-    go.mainFunction()
+    
+    try:
+        go.mainFunction()
+    except Exception as e:
+        print(': )', e)
+
     path = "./data"
     path = os.path.realpath(path)
     messagebox.showinfo("Horários criados", "Agora você já pode ver os horários criados, na pasta a seguir.")

@@ -23,7 +23,6 @@ def restartObjects(listO):
 
 
 def mainFunction():  # A função principal do código, que retornará o resultado que nós esperamos
-
     # =================== Pegando os dados que nós fornecemos
     try:
         teachersData = loadData.getDatabase('Planilha dos horários.xlsx') ##  # Leitura inicial da planilha
@@ -154,8 +153,8 @@ def mainFunction():  # A função principal do código, que retornará o resulta
 
 
 
-                #if not('ELM-2NA' in horario.turm[0]):
-                    #continue
+                if not('ELM-2NA' in horario.turm[0] or 'ELM-2NA' in horario.turm[0] or 'MCT' in horario.turm[0]):
+                    continue
 
 
 
@@ -174,6 +173,10 @@ def mainFunction():  # A função principal do código, que retornará o resulta
                     #raise Exception('Parou')
                     print('Optimizando...', end='')
                     new_board, position = Optmizer(quadro,teachers, horario, subjectPos, typeNum, motivo=motivo)
+                    
+                    if new_board == None and position == None:
+                        break
+                    
                     print('.')
                     print('achou!')
                     if new_board == 'Não conseguiu achar um melhor':
@@ -306,6 +309,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
         elif times == 50:                                      # Quando não acha resultado
             reset = True
             break
+            
         times += 1
         
         # Criamos a cópia do quadro, continuamos atualizando o melhor estado
@@ -318,6 +322,8 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
         turno = typeNum
         if find_one_better and not(finishing): 
             logic.print_quadro(better_board[0], novo_horario, turno)
+            #logic.TESTANDO_POSITIONS(quadro, novo_horario.turm[0], typeNum, subjectPos=subjectPos, horario=novo_horario)
+
         find_one_better = False
 
         #logic.remove_already_check_positions(positions_for_horaries, already_check, 4)
@@ -508,7 +514,13 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
     if reset:
         print(' ')
         print('Recomeçando de novo ...')
-        mainFunction()
+        
+        try:
+            mainFunction()
+        except: pass
+        #return None, None
+        # Depois que chamamos o main function ele realiza todas as operações novamente. Mas com o código já tendo terminado.
+        # Ele não pode fazer mais nenhuma operação depois que passa daqui.
 
 def criar_as_salas(planilha):
     turmas = []

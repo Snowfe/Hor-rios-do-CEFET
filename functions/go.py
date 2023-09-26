@@ -23,100 +23,15 @@ def restartObjects(listO):
 
 
 def mainFunction():  # A função principal do código, que retornará o resultado que nós esperamos
+    
     # =================== Pegando os dados que nós fornecemos
-    try:
-        teachersData = loadData.getDatabase('Planilha dos horários.xlsx') ##  # Leitura inicial da planilha
-
-        # A biblioteca substitui o NA por 0, assim, o seguinte código coloca de volta os nomes dos subgrupos que foram substituidos
-        for i in range(0, len(teachersData['Sub-Grupo'])):
-            if str(teachersData['Sub-Grupo'][i]) == '0':
-                teachersData['Sub-Grupo'][i] = 'NA'
-        teachersColumns = loadData.getDatabase('Planilha dos horários.xlsx', get="columns") ##
-        roomsData = loadData.getDatabase('Planilha sala.xlsx') # Leitura inicial da planilha de salas
-        pointsData = loadData.getPoints('./data/preferencias.txt')  # Leitura das pontuações para o cost
-    except Exception as e:
-        print(f"Houve um erro ao tentar pegar os dados das planilhas.\n{e}")
-
-    # ==================== Processando os dados para deixa-los melhor de mexer
-
-    classesNames = []  # -- Turmas
-    classes = []  # Lista de objetos de cada turma
-    """
-    for i in range(12, len(teachersColumns)):  # Pega apenas as matérias
-        classesNames.append(teachersColumns[i])
-    
-    #for i in range(0, len)
-    for index, turm in enumerate(classesNames):  # Transforma cada turma em um objeto de uma classe
-        for i in range(1, 4):  # Turma para cada ano
-            for group in ['A', 'B', 'NA', 'NB']:  # Adiciona os subgrupos A e B para todas as turmas
-                classes.append(c.Turm(turm, str(i), group))
-    """
-    classes = criar_as_salas(teachersData)
-    
-    teachersNames = []  # -- Professores
-    teachers = []  # Lista de objetos de cada professor
-
-    for index, teacher in enumerate(teachersData["Professor"]):  # Transforma cada professor em um objeto de uma classe
-        horaries = {}  # Horários para cada turma e matéria
-        for i in range(12, len(teachersColumns)):   # SE ACRESCENTAR OU TIRAR COLUNA NA TABELA, TEM QUE MUDAR O VALOR AQUI
-            
-            if teachersData[f"{teachersColumns[i]}"][index]:
-            
-                horaries[
-                        f"{teachersColumns[i]}-" + f'{teachersData["Ano"][index]}' + f'{teachersData["Sub-Grupo"][index]}' + 
-                        f'|{int(teachersData["Numero de grupos"][index])},{int(teachersData["Numero de bimestres"][index])},{teachersData["Grupo"][index]}'] = int(
-                    teachersData[f"{teachersColumns[i]}"][index])
-
-
-        if not (teacher in teachersNames):
-            teachers.append(c.Teacher(teacher,
-                                      f'{teachersData["Materia"][index]}-{teachersData["Ano"][index]}{teachersData["Sub-Grupo"][index]}',
-                                      f'{teachersData["Tipo"][index]}', 
-                                      str(teachersData["Preferencias"][index]).split('-'),
-                                      str(teachersData["Limitacoes"][index]).split('-'),
-                                      str(teachersData["Bimestral"][index]),
-                                      str(teachersData["Local"][index]), 
-                                      horaries))
-            teachersNames.append(teacher)
-        else:
-            teachers[teachersNames.index(teacher)].subjects.append(
-                f'{teachersData["Materia"][index]}-{teachersData["Ano"][index]}{teachersData["Sub-Grupo"][index]}')
-            teachers[teachersNames.index(teacher)].types.append(f'{teachersData["Tipo"][index]}')
-            teachers[teachersNames.index(teacher)].prefers.append(str(teachersData["Preferencias"][index]).split('-'))
-            teachers[teachersNames.index(teacher)].limits.append(str(teachersData["Limitacoes"][index]).split('-'))
-            teachers[teachersNames.index(teacher)].bimestral.append(int(str(teachersData["Bimestral"][index])[0]))
-            teachers[teachersNames.index(teacher)].locais.append(str(teachersData["Local"][index]))
-            teachers[teachersNames.index(teacher)].horaries[
-                f'{teachersData["Materia"][index]}-{teachersData["Ano"][index]}{teachersData["Sub-Grupo"][index]}'] = horaries
-
-        # print(f'{teachers[teachersNames.index(teacher)].name}, {teachers[teachersNames.index(teacher)].horaries}')
-    tipos_normais = ['1,4,T', '3,1,G', '2,1,T', '2,2,T', '2,4,T', '0,0,0', '3,4,G']
-    for professor in teachers:
-        horarios = professor.horaries
-        for i, h in enumerate(horarios.items()):
-            materia = h[0]
-            for turma in h[1].items():
-                turma_do_horario = turma[0]
-                for time in range(0, turma[1]):
-                    sala, tipo = turma[0].split('|')
-                    # Esse if só está aqui porque não se sabe ainda como interpretar na tabela final como ficariam os horários de tipos diferentes.
-                    # Mas mesmo sem esse horários continua dando o mesmo erro
-                    if not(tipo in tipos_normais):
-                        #print('tipo', tipo, professor, materia, sala, turma[1])
-                        pass
-                    else:
-                        ho = c.Horario(teacher=professor, subject=materia, turm=(sala, turma[1]), local=professor.locais[i], tipo=tipo)  # Objeto do horário
-                        professor.h_individuais.append(ho)  # Uma lista com todos os objetos Horario do professor []
-            professor.h_individuais = loadData.organize_table(professor.h_individuais)
-
-    roomsNames = roomsData['Sala'] # -- Salas
-    rooms = []
-
-    for index, room in enumerate(roomsNames):  # Transforma cada turma em um objeto de uma classe
-        rooms.append(c.Room(room, roomsData['Local'][index], roomsData['Limitacoes'][index]))
+    teachers, teachersNames, classes = organizing_data()
 
     # ==================== Processando os dados: Gerando a planilha final com base nos dados
-
+    print('verificando', end =' ')
+    verificador_professores(teachers)
+    verificando_turmas(classes, teachers)
+    print('ok')
     bestSchedule = []
     # Duplicar os objetos professores e manipular apenas umgrupo nessa parte a baixo
     for time in range(0, NUMERO_DE_REPETIÇÕES): # Por emquanto estamos nos focando em fazer apenas uma repetição
@@ -131,9 +46,9 @@ def mainFunction():  # A função principal do código, que retornará o resulta
         # Quadro de horários em branco
         quadro = {}
         quadro_de_horarios_em_branco(quadro, classes)
-
+       
         #estorico_de_quadros = []
-        
+
         while len(lista_embaralhada) != 0:
             #estorico_de_quadros.append( (logic.save_board(quadro), copy.deepcopy(teachers)) )   # Também precisamos salvar os objetos dos professores
             # Retiro o primeiro item da lista e o coloco na variável teacher
@@ -146,36 +61,31 @@ def mainFunction():  # A função principal do código, que retornará o resulta
             for horario in h_professor:
 
 
-                if not('ELM-2NA' in horario.turm[0] or 'ELM-2NA' in horario.turm[0] or 'MCT' in horario.turm[0]):
+                if not('MEC-1NB' in horario.turm[0]):
                     continue
 
 
-
                 subjectPos = horario.teacher.subjects.index(f"{horario.subject}")  # -{horario.turm[0].split('-')[1]}")
-               
                 typeV = horario.teacher.types[subjectPos]
                 typeNum = 0
                 if typeV == 'Tarde': typeNum = 1
                 elif typeV == 'Noite': typeNum = 2
+
                 # Seleciono qual o melhor estado para aquele horário
-                #print('==========================')
-                #logic.print_quadro(quadro, horario, typeNum)
                 position, motivo = logic.getBetterHour(horario, quadro.copy()[horario.turm[0]], subjectPos,
                                                 typeNum)  # type é 0 - manha ou 1 - tarde. retorna 'day;hour;turm;room' 
                 if position == 'ERROR':
-                    #raise Exception('Parou')
+                    
                     print('Optimizando...', end='')
                     new_board, position = Optmizer(quadro,teachers, horario, subjectPos, typeNum, motivo=motivo)
                     
+                    # Se isso aqui passar, quer dizer que a função não retornou nada porque aconteceu um erro, ela está começando de novo.
                     if new_board == None and position == None:
                         break
                     
                     print('.')
                     print('achou!')
                     if new_board == 'Não conseguiu achar um melhor':
-                        print(typeNum, f'| ### {motivo} ###')
-                        # Vamos printar os valores dos professores também
-                        logic.print_quadro(quadro, horario, typeNum)
                         ERRO_NOS_HORARIOS = True
                         break
                     else:
@@ -184,51 +94,8 @@ def mainFunction():  # A função principal do código, que retornará o resulta
                 position_info = position.split(';')
 
                 # Coloco o horário naquela posição
-                if teacher.bimestral[subjectPos] == 1: # Se horário for bimestral
-                    if not(type(quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])]) is list): # Se no horário não for lista, criamos a lista
-                        if '1' == horario.type[2]:
-                            quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])] = [0, 0, 0, 0]
-                        elif '4,G' in horario.type:
-                            quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])] = [0, 0, 0]
-                        elif '2,T' in horario.type or '4,T' in horario.type:
-                            quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])] = [0, 0]
-                        
-                    # E em seguida colocamos o horário bimestral nessa posição
-                    if quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] != 0:
-                        print(f'HORARIO JÁ OCPUADO:::::::  {quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])][int(position_info[2])]}, {horario}')
-                        raise Exception('Horário já ocupado')
-                    try: quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] = horario
-                    except:
-                        print('Posição inválida', position_info, typeNum)
-                        print(len(quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])]), horario, horario.type)
-                        print(quadro[position_info[3]][position_info[0]][typeNum])
-                        raise Exception('Horário Inválido')
-                    
-                else:  # Se já for uma lista apenas colocamos o horário na posição mesmo
-                    quadro[position_info[2]][position_info[0]][typeNum][int(position_info[1])] = horario
-
-                # Professores
-                if teacher.bimestral[subjectPos] == 1: # Se horário for bimestral
-                    if not(type(horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])]) is list): # Se no horário não for lista
-                        
-                        if '1' == horario.type[2]:
-                            horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0, 0, 0]
-                        elif '4,G' in horario.type:
-                            horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0, 0]
-                        elif '2,T' in horario.type or '4,T' in horario.type:
-                            horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0]
-                    try:
-
-                        horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
-                    except:
-                        print(horario.type, position[2], horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])], motivo)
-                    teachers_copy[teachersNames.index(horario.teacher.name)].schedule[position_info[0]][typeNum][
-                        int(position_info[1])] = list(horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])])
-                else:
-                    horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
-
-                    teachers_copy[teachersNames.index(horario.teacher.name)].schedule[position_info[0]][typeNum][
-                        int(position_info[1])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
+                put_h_in_the_place(quadro, horario, position_info, typeNum, teacher, teachers_copy, teachersNames, subjectPos)
+                
 
             if ERRO_NOS_HORARIOS:
                 break
@@ -246,14 +113,14 @@ def mainFunction():  # A função principal do código, que retornará o resulta
         except:
             bestSchedule.append([quadro.copy(), pontuacao, copy.deepcopy(teachers_copy)])
 
-        print(time, 'Resultado', pontuacao)
+        print(time, 'Resultado', int(pontuacao))
         print('Finalizando...')
         quadro = Optmizer(quadro, teachers, finishing=True)
         print('Nova pontuação final: ', logic.cost_board(quadro))
         break
 
     horarios = random.choice(bestSchedule)
-
+    # Dando tudo certo, vamos salvar as informações nas tabelas.
     for turm in classes:
         result.saveSheet(turm.name, horarios[0][turm.name], type='turm')
     for teacher in teachers:
@@ -291,7 +158,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
         print('\n')
         if not(finishing):
             if '0' in novo_horario.type: print('    NORMAL', end=' ')
-            else: print(f'   BIMESTRAL', end=' ')
+            else:                        print('    BIMESTRAL', end=' ')
         
         # É aqui que decidimos a hora de parar o código caso não ache um resultado, ou esteja apenas finalizando
         if find_one_better: times = 0
@@ -299,7 +166,6 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
         elif times == 50:                                      # Quando não acha resultado
             reset = True
             break
-            
         times += 1
         
         # Criamos a cópia do quadro, continuamos atualizando o melhor estado
@@ -409,8 +275,15 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                     # Vemos se é melhor do que o que já temos
                     if finishing: value = logic.cost_board(quadro)
                     else:         value = logic.cost_board(quadro, in_optimizer=True, novo_horario=novo_horario, typeNum=typeNum)
-
-                    if value > better_board[1]:
+                    
+                    # Se o quadro do professor estiver diferente, vamos pontuar esse estado
+                    i = 0
+                    if not finishing:
+                        for teacher in better_board[2]:
+                            if teacher.name == novo_horario.teacher.name:
+                                if teacher.schedule != novo_horario.teacher.schedule:
+                                    i = 20
+                    if value + i > better_board[1]:
                         # Quero manter uma cópia salvae que não varie conforme mudamos as váriáveis tentando achar uma melhor
                         better_board = (logic.save_board(quadro), value, copy.deepcopy(teachers))
                         print('^^^', end='')
@@ -459,7 +332,14 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                         value = logic.cost_board(quadro)
                     else:    
                         value = logic.cost_board(quadro, in_optimizer=True, novo_horario=novo_horario, typeNum=typeNum)
-                    if value > better_board[1]:
+                    # Se o quadro do professor estiver diferente, vamos pontuar esse estado
+                    i = 0
+                    if not finishing:
+                        for teacher in better_board[2]:
+                            if teacher.name == novo_horario.teacher.name:
+                                if teacher.schedule != novo_horario.teacher.schedule:
+                                    i = 20
+                    if value + i > better_board[1]:
                         # Salvando a melhor versão que temos até agora
                         better_board = (quadro.copy(), value, copy.deepcopy(teachers))
                         print('^^^', end='')
@@ -534,3 +414,219 @@ def quadro_de_horarios_em_branco(quadro, classes):
                 '5': [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0]],
                 '6': [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0]]
             }
+
+def verificador_professores(teachers):
+    """
+    vamos verificar se os dados dos professores são válidos, se é possível que criemos uma planilha com aqueles horários
+    """
+    n_de_aulas = {}
+    for t in teachers:
+        n_de_aulas[t.name] = [0, 0, 0]
+        for horario in t.h_individuais:
+            
+            subjectPos = horario.teacher.subjects.index(f"{horario.subject}")  # -{horario.turm[0].split('-')[1]}")
+            typeV = horario.teacher.types[subjectPos]
+
+            if typeV == 'Tarde':
+                if horario.type[0] == '1':
+                    
+                    if '0' in horario.type:
+                        n_de_aulas[t.name][1] += 1
+                    elif horario.type[2] == '1':
+                        n_de_aulas[t.name][1] += 0.25
+                    elif '4,G' in horario.type:
+                        n_de_aulas[t.name][1] += 1/3
+                    else:
+                        n_de_aulas[t.name][1] += 0.5
+                else:
+                    n_de_aulas[t.name][1] += 1
+                
+
+            elif typeV == 'Noite':
+                if horario.type[0] == '1':
+                    if '0' in horario.type:
+                        n_de_aulas[t.name][2] += 1
+                    elif horario.type[2] == '1':
+                        n_de_aulas[t.name][2] += 0.25
+                    elif '4,G' in horario.type:
+                        n_de_aulas[t.name][2] += 1/3
+                    else:
+                        n_de_aulas[t.name][2] += 0.5
+                else:
+                    n_de_aulas[t.name][2] += 1
+            else:
+                if horario.type[0] == '1':
+                    if '0' in horario.type:
+                        n_de_aulas[t.name][0] += 1
+                    elif horario.type[2] == '1':
+                        n_de_aulas[t.name][0] += 0.25
+                    elif '4,G' in horario.type:
+                        n_de_aulas[t.name][0] += 1/3
+                    else:
+                        n_de_aulas[t.name][0] += 0.5
+                else:
+                    n_de_aulas[t.name][0] += 1
+    
+    for name, n in n_de_aulas.items():
+        #if 'Guilherme' in name:
+            #print('Guilherme', n)
+        if n[0] > 30: raise Exception(f'O professor {name} não está com os horários adequados, ele está com uma carga horária de {n[0]} na parte da manhã, sendo o máximo 30')
+        elif n[1] > 30: raise Exception(f'O professor {name} não está com os horários adequados, ele está com uma carga horária de {n[1]} na parte da tarde, sendo o máximo 30')
+        elif n[2] > 20: raise Exception(f'O professor {name} não está com os horários adequados, ele está com uma carga horária de {n[2]} na parte da noite, sendo o máximo 20')
+            
+def verificando_turmas(classes, teachers):
+    turmas = {}
+    for turma in classes:
+        turmas[turma.name] = 0
+    for t in teachers:
+        for h in t.h_individuais:
+            if h.type == '0,0,0':
+                turmas[h.turm[0]] += 1
+            elif h.type[2] == '1':
+                turmas[h.turm[0]] += 0.25
+            else:
+                turmas[h.turm[0]] += 0.5
+    for turma, n in turmas.items():
+        if turma[-2] == 'N' and n > 20:
+            raise Exception(f'Horário da turma noturna {turma} está com {n} horários')
+        elif n > 30:
+            raise Exception(f'Horário da turma {turma} está com {n} horários')
+    print(turmas)
+
+
+def organizing_data():
+    """
+    Recebemos as informações das planilhas que colocamos e etc e usamos elas para criar os objetos,
+    Entre outras coisas que serão necessárias para o processamento.
+    """
+    
+    try:
+        teachersData = loadData.getDatabase('Planilha dos horários 2023.xlsx') ##  # Leitura inicial da planilha
+
+        # A biblioteca substitui o NA por 0, assim, o seguinte código coloca de volta os nomes dos subgrupos que foram substituidos
+        for i in range(0, len(teachersData['Sub-Grupo'])):
+            if str(teachersData['Sub-Grupo'][i]) == '0':
+                teachersData['Sub-Grupo'][i] = 'NA'
+        teachersColumns = loadData.getDatabase('Planilha dos horários 2023.xlsx', get="columns") ##
+        roomsData = loadData.getDatabase('Planilha sala.xlsx') # Leitura inicial da planilha de salas
+        pointsData = loadData.getPoints('./data/preferencias.txt')  # Leitura das pontuações para o cost
+    except Exception as e:
+        print(f"Houve um erro ao tentar pegar os dados das planilhas.\n{e}")
+
+    # ==================== Processando os dados para deixa-los melhor de mexer
+
+    classes = []  # Lista de objetos de cada turma
+    
+    classes = criar_as_salas(teachersData)
+    teachersNames = []  # -- Professores
+    teachers = []  # Lista de objetos de cada professor
+
+    for index, teacher in enumerate(teachersData["Professor"]):  # Transforma cada professor em um objeto de uma classe
+        horaries = {}  # Horários para cada turma e matéria
+        for i in range(12, len(teachersColumns)):   # SE ACRESCENTAR OU TIRAR COLUNA NA TABELA, TEM QUE MUDAR O VALOR AQUI
+            
+            if teachersData[f"{teachersColumns[i]}"][index]:
+            
+                horaries[
+                        f"{teachersColumns[i]}-" + f'{teachersData["Ano"][index]}' + f'{teachersData["Sub-Grupo"][index]}' + 
+                        f'|{int(teachersData["Numero de grupos"][index])},{int(teachersData["Numero de bimestres"][index])},{teachersData["Grupo"][index]}'] = int(
+                    teachersData[f"{teachersColumns[i]}"][index])
+
+
+        if not (teacher in teachersNames):
+            teachers.append(c.Teacher(teacher,
+                                      f'{teachersData["Materia"][index]}-{teachersData["Ano"][index]}{teachersData["Sub-Grupo"][index]}',
+                                      f'{teachersData["Tipo"][index]}', 
+                                      str(teachersData["Preferencias"][index]).split('-'),
+                                      str(teachersData["Limitacoes"][index]).split('-'),
+                                      str(teachersData["Bimestral"][index]),
+                                      str(teachersData["Local"][index]), 
+                                      horaries))
+            teachersNames.append(teacher)
+        else:
+            teachers[teachersNames.index(teacher)].subjects.append(
+                f'{teachersData["Materia"][index]}-{teachersData["Ano"][index]}{teachersData["Sub-Grupo"][index]}')
+            teachers[teachersNames.index(teacher)].types.append(f'{teachersData["Tipo"][index]}')
+            teachers[teachersNames.index(teacher)].prefers.append(str(teachersData["Preferencias"][index]).split('-'))
+            teachers[teachersNames.index(teacher)].limits.append(str(teachersData["Limitacoes"][index]).split('-'))
+            teachers[teachersNames.index(teacher)].bimestral.append(int(str(teachersData["Bimestral"][index])[0]))
+            teachers[teachersNames.index(teacher)].locais.append(str(teachersData["Local"][index]))
+            teachers[teachersNames.index(teacher)].horaries[
+                f'{teachersData["Materia"][index]}-{teachersData["Ano"][index]}{teachersData["Sub-Grupo"][index]}'] = horaries
+
+        # print(f'{teachers[teachersNames.index(teacher)].name}, {teachers[teachersNames.index(teacher)].horaries}')
+
+    tipos_normais = ['1,4,T', '3,1,G', '2,1,T', '2,2,T', '2,4,T', '0,0,0', '3,4,G']
+
+    for professor in teachers:
+        horarios = professor.horaries
+        for i, h in enumerate(horarios.items()):
+            materia = h[0]
+            for turma in h[1].items():
+                for time in range(0, turma[1]):
+                    sala, tipo = turma[0].split('|')
+                    # Esse if só está aqui porque não se sabe ainda como interpretar na tabela final como ficariam os horários de tipos diferentes.
+                    if not(tipo in tipos_normais):
+                        pass
+                    else:
+                        ho = c.Horario(teacher=professor, subject=materia, turm=(sala, turma[1]), local=professor.locais[i], tipo=tipo)  # Objeto do horário
+                        professor.h_individuais.append(ho)  # Uma lista com todos os objetos Horario do professor []
+            professor.h_individuais = loadData.organize_table(professor.h_individuais)
+
+    roomsNames = roomsData['Sala'] # -- Salas
+    rooms = []
+
+    for index, room in enumerate(roomsNames):  # Transforma cada turma em um objeto de uma classe
+        rooms.append(c.Room(room, roomsData['Local'][index], roomsData['Limitacoes'][index]))
+    
+    return teachers, teachersNames, classes
+
+def put_h_in_the_place(quadro, horario, position_info, typeNum, teacher, teachers_copy, teachersNames, subjectPos):
+    """
+    Temos um horário e colocamos ele em uma determinada posição no quadro.
+    """
+    if teacher.bimestral[subjectPos] == 1: # Se horário for bimestral
+        if not(type(quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])]) is list): # Se no horário não for lista, criamos a lista
+            if '1' == horario.type[2]:
+                quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])] = [0, 0, 0, 0]
+            elif '4,G' in horario.type:
+                quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])] = [0, 0, 0]
+            elif '2,T' in horario.type or '4,T' in horario.type:
+                quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])] = [0, 0]
+            
+        # E em seguida colocamos o horário bimestral nessa posição
+        if quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] != 0:
+            print(f'HORARIO JÁ OCPUADO:::::::  {quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])][int(position_info[2])]}, {horario}')
+            raise Exception('Horário já ocupado')
+        try: quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] = horario
+        except:
+            print('Posição inválida', position_info, typeNum)
+            print(len(quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])]), horario, horario.type)
+            print(quadro[position_info[3]][position_info[0]][typeNum])
+            raise Exception('Horário Inválido')
+        
+    else:  # Se já for uma lista apenas colocamos o horário na posição mesmo
+        quadro[position_info[2]][position_info[0]][typeNum][int(position_info[1])] = horario
+
+    # Professores
+    if teacher.bimestral[subjectPos] == 1: # Se horário for bimestral
+        if not(type(horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])]) is list): # Se no horário não for lista
+            
+            if '1' == horario.type[2]:
+                horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0, 0, 0]
+            elif '4,G' in horario.type:
+                horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0, 0]
+            elif '2,T' in horario.type or '4,T' in horario.type:
+                horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0]
+        try:
+
+            horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
+        except:
+            print(horario.type, position_info[2], horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])], motivo)
+        teachers_copy[teachersNames.index(horario.teacher.name)].schedule[position_info[0]][typeNum][
+            int(position_info[1])] = list(horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])])
+    else:
+        horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
+
+        teachers_copy[teachersNames.index(horario.teacher.name)].schedule[position_info[0]][typeNum][
+            int(position_info[1])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"

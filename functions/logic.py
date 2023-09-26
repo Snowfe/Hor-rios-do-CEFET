@@ -49,6 +49,11 @@ def getBetterHour(horario, board, subjectPos, typeNum):
                         betterH.append([f'{d};{h}', pontuation])
 
             else: # Se for bimestral
+                try:
+                    n_bimestres += 1
+                    n_bimestres -= 1
+                except:
+                    print(horario.type, horario.teacher.name, horario.turm)
                 for bimester in range(0, n_bimestres):
                     #print('BIMESTRE -->', bimester)
                     pontuation, motivo = validation(horario, [d, h, bimester], quadro, subjectPos, typeNum, bimestral=1)
@@ -545,14 +550,21 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
             
             
             if not(0 in horario.teacher.schedule[str(h_day)][typeNum][h_time]):
-                return BREAK_INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 1 _______'
+                return BREAK_INVALIDO, 'HORÁRIO JA PREENCHIDO PROFESSORES 1 _______'
             
+            
+            for bimestral in horario.teacher.schedule[str(h_day)][typeNum][h_time]:
+                if bimestral:
+                    if '1' != horario.type[0]:
+                        return INVALIDO, 'Não pode ter mais de uma posição PREENCHIDA'
+            
+
             # Se horário estiver preenchido
                 #Precisamos antes checar se as condições do horário estão corretas, se é compatível o horário que estamos colocando com o local em que ele será colocado
             if (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 4 and '1' == horario.type[2]) or (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 2 and '2,T' in horario.type) or (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 3 and '4,G' in horario.type):
                 try: 
                     if horario.teacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
-                        return INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 2 _______'
+                        return INVALIDO, 'HORÁRIO JA PREENCHIDO PROFESSORES 2 _______'
                 except:
                     print('Posição e horário não estão de acordo', position[2], horario.type)
                     if horario.teacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
@@ -561,7 +573,7 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
                 return INVALIDO, 'TIPO DO PROFESSOR E DO HORÁRIO NÃO CORRESPONDEM ______'
             
         else: 
-            return BREAK_INVALIDO, 'HORÁRIO JA OCUPADO PROFESSORES 3 _______'
+            return BREAK_INVALIDO, 'HORÁRIO JA PREENCHIDO PROFESSORES 3 _______'
 
     # Não pode trabalhar mais de 8h no mesmo dia
     horaries_in_day = horario.teacher.schedule[position[0]]
@@ -728,7 +740,7 @@ def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2,positions_for_horarie
 
 
 def print_quadro(quadro, horario, typeNum):
-    print('========== PROFESSOR')
+    print(f'========== PROFESSOR {horario.teacher}')
     try: h = quadro[horario.turm[0]]
     except: 
         raise Exception(f'Erro com o quadro no print: {horario.turm[0]}, {quadro.keys()}')
@@ -1310,11 +1322,11 @@ def get_weights(lista, quadro, turma, turno, novo_horario, finishing=False):
             for p in lista:
                 if len(p) == 4:
                     if quadro[turma][p[0]][turno][p[1]].teacher == novo_horario.teacher:
-                        pesos.append(40)
+                        pesos.append(60)
                     else: pesos.append(1)
                 else:
                     if quadro[turma][p[0]][turno][p[1]][p[2]].teacher == novo_horario.teacher:
-                        pesos.append(40)
+                        pesos.append(60)
                     else: pesos.append(1)
 
     if len(pesos) == 0:

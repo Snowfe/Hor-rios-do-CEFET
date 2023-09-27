@@ -55,7 +55,6 @@ def getBetterHour(horario, board, subjectPos, typeNum):
                 except:
                     print(horario.type, horario.teacher.name, horario.turm)
                 for bimester in range(0, n_bimestres):
-                    #print('BIMESTRE -->', bimester)
                     pontuation, motivo = validation(horario, [d, h, bimester], quadro, subjectPos, typeNum, bimestral=1)
                     
                     # Vamos contando quantos erros ocorreram de cada tipo
@@ -471,61 +470,36 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
             if (limite_inferior <= int(h_time) + 1) and (limite_superior >= int(h_time) + 1):  # Se o horário estiver compreendido durante a limitação
                 return INVALIDO, 'LIMITAÇÃO DO PROFESSOR ________'
     """
-    # Limitações da sala
-    # room_invalids_h =
-    for value in board[position[0]][typeNum]:
-        if value:
-            if not(type(value) is list):
-                # Value é um horário normal
-                if horario.local != value.local:
-                    #print(f'Erro, dia:{position[0]} dois normais')
-                    return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 1 ____{horario.local}______'
-            elif len(position) == 3: # Se for bimestral
-                #if (len(h) == 4 and horario.type[2] == '1') or (len(h) == 3 and '4,G' in horario.type) or (len(h) == 2 and not('4,G' in horario.type or horario.type[2] == '1')):
-                try:
-                    tipo_diferente = False
-                    for bimestral in value:
-                        if bimestral:
-                            if bimestral.type == horario.type:
-                                break
-                            else:
-                                tipo_diferente = True
-                                break
-                    if tipo_diferente: 
-                        raise Exception('é de tipo diferente')
-                            
-                    if value[position[2]]:
-                        if value[position[2]].local != horario.local:
-                            return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 2 ___{horario.local}_______'
-                except: # Vai passar por aqui quando as listas forem de comprimentos diferentes.
-                    for bimestral in value:
-                        if bimestral:
-                            if bimestral.local != horario.local: 
-                                #print(f'Erro, dia:{position[0]} listas diferentes')
-                                return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 3 ___{horario.local}_______'
-            else: # Horario é do tipo normal e Value é bimestral
-                for bimestral in value:
-                    if bimestral:
-                        if bimestral.local != horario.local: 
-                            return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 4 ___{horario.local}_______'
- 
-                
+    # Vamos ver se o horário não pode ficar naquela posição por estarem em campus diferentes
+    result, motivo = valid_campus_diferentes(horario, board, position, typeNum, INVALIDO)
+    if result == INVALIDO: return result, motivo
+    
     # Horário já está ocupado por outro no Quadro de horários?
+    result, motivo = valid_horario_ocupado(horario, board, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO)
+    if result == INVALIDO: return result, motivo
+    """
     if board[str(h_day)][typeNum][h_time] != 0: # Se horário estiver preenchido 
         if type(board[str(h_day)][typeNum][h_time]) is list and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
-            if (horario.type[2] == '1' and len(board[str(h_day)][typeNum][h_time]) != 4) or ('4,G' in horario.type and len(board[str(h_day)][typeNum][h_time]) != 3):
+    
+            # Temos essa situação especial, em que por mais que sejam listas diferentes, ainda podemos colocar os horários juntos.
+            
+            special_case = False
+            
+
+            if ((horario.type[2] == '1' and len(board[str(h_day)][typeNum][h_time]) != 4) or (
+                 '4,G' in horario.type and len(board[str(h_day)][typeNum][h_time]) != 3)) and (not(special_case)):
                 return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{horario.type}'
             if board[str(h_day)][typeNum][h_time][position[2]] != 0:
                 return INVALIDO, 'HORÁRIO JÁ OCUPADO 2 _________'
-            for outros_horarios in board[str(h_day)][typeNum][h_time]:
-                if outros_horarios:
-                    if outros_horarios.type != horario.type:
-                        return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{outros_horarios.type, horario.type}'
-                    if outros_horarios.subject == horario.subject:
-                        return INVALIDO, f'MESMA MATÉRIA FICA EM LISTAS DIFERENTES _{outros_horarios.subject, horario.subject}'
-                    elif outros_horarios.teacher == horario.teacher:
-                        return INVALIDO, f'MESMO PROFESSOR FICA EM LISTAS DIFERENTES_ '
-                        raise(professor)
+            if not(special_case):
+                for outros_horarios in board[str(h_day)][typeNum][h_time]:
+                    if outros_horarios:
+                        if outros_horarios.type != horario.type:
+                            return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{outros_horarios.type, horario.type}'
+                        if outros_horarios.subject == horario.subject:
+                            return INVALIDO, f'MESMA MATÉRIA FICA EM LISTAS DIFERENTES _{outros_horarios.subject, horario.subject}'
+                        elif outros_horarios.teacher == horario.teacher:
+                            return INVALIDO, f'MESMO PROFESSOR FICA EM LISTAS DIFERENTES_ '
             # Se horário estiver preenchido
             else:
                 for outros_horarios in board[str(h_day)][typeNum][h_time]:
@@ -541,7 +515,8 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
 
         else: 
             return BREAK_INVALIDO, f'HORÁRIO JÁ OCUPADO 3 _tem um normal no lugar: {horario.type}'
-    
+        """
+    #return 0, ''
     # Verificar também a parte dos professores
     if type(horario.teacher.schedule[str(h_day)][typeNum]) is int:
         raise Exception('Horário no professor aparece com 0', horario, horario.teacher.schedule, horario.teacher.schedule[str(h_day)])
@@ -1376,3 +1351,88 @@ def TESTANDO_POSITIONS(quadro, turma, turno, subjectPos, horario):
             print(valid[1])
         validation(horario, (dia, position), quadro[turma], subjectPos, turno, turma, 0)
         print(valid[1])
+
+
+def valid_campus_diferentes(horario, board, position, typeNum, INVALIDO):
+    for value in board[position[0]][typeNum]:
+        if value:
+            if not(type(value) is list):
+                # Value é um horário normal
+                if horario.local != value.local:
+                    return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 1 ____{horario.local}______'
+            elif len(position) == 3: # Se for bimestral
+                #if (len(h) == 4 and horario.type[2] == '1') or (len(h) == 3 and '4,G' in horario.type) or (len(h) == 2 and not('4,G' in horario.type or horario.type[2] == '1')):
+                try:
+                    tipo_diferente = False
+                    for bimestral in value:
+                        if bimestral:
+                            if bimestral.type == horario.type:
+                                break
+                            else:
+                                tipo_diferente = True
+                                break
+                    if tipo_diferente: 
+                        raise Exception('é de tipo diferente')
+                            
+                    if value[position[2]]:
+                        if value[position[2]].local != horario.local:
+                            return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 2 ___{horario.local}_______'
+                except: # Vai passar por aqui quando as listas forem de comprimentos diferentes.
+                    for bimestral in value:
+                        if bimestral:
+                            if bimestral.local != horario.local: 
+                                #print(f'Erro, dia:{position[0]} listas diferentes')
+                                return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 3 ___{horario.local}_______'
+            else: # Horario é do tipo normal e Value é bimestral
+                for bimestral in value:
+                    if bimestral:
+                        if bimestral.local != horario.local: 
+                            return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 4 ___{horario.local}_______'
+    return 0, ''
+
+def valid_horario_ocupado(horario, board, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO):
+    if board[str(h_day)][typeNum][h_time] != 0: # Se horário estiver preenchido 
+        if type(board[str(h_day)][typeNum][h_time]) is list and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
+    
+            # Temos essa situação especial, em que por mais que sejam listas diferentes, ainda podemos colocar os horários juntos.
+            
+            special_case = False
+            """
+            if len(board[str(h_day)][typeNum][h_time]) == 4:
+                if (board[str(h_day)][typeNum][h_time][0] == 0 and board[str(h_day)][typeNum][h_time][1] == 0) or (
+                    board[str(h_day)][typeNum][h_time][2] == 0 and board[str(h_day)][typeNum][h_time][3] == 0) and (
+                    horario.type[2] == 2):
+                    special_case = True
+            """
+
+            if ((horario.type[2] == '1' and len(board[str(h_day)][typeNum][h_time]) != 4) or (
+                 '4,G' in horario.type and len(board[str(h_day)][typeNum][h_time]) != 3)) and (not(special_case)):
+                return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{horario.type}'
+            if board[str(h_day)][typeNum][h_time][position[2]] != 0:
+                return INVALIDO, 'HORÁRIO JÁ OCUPADO 2 _________'
+            if not(special_case):
+                for outros_horarios in board[str(h_day)][typeNum][h_time]:
+                    if outros_horarios:
+                        if outros_horarios.type != horario.type:
+                            return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{outros_horarios.type, horario.type}'
+                        if outros_horarios.subject == horario.subject:
+                            return INVALIDO, f'MESMA MATÉRIA FICA EM LISTAS DIFERENTES _{outros_horarios.subject, horario.subject}'
+                        elif outros_horarios.teacher == horario.teacher:
+                            return INVALIDO, f'MESMO PROFESSOR FICA EM LISTAS DIFERENTES_ '
+            # Se horário estiver preenchido
+            else:
+                for outros_horarios in board[str(h_day)][typeNum][h_time]:
+                    if outros_horarios:
+                        # Se os outros horários da lista forem de tipos diferentes
+                        if outros_horarios.type != horario.type or ('3,1,G' in horario.type and len(board[str(h_day)][typeNum][h_time]) != 4):
+                            return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{outros_horarios.type, horario.type}'
+            try:        
+                if board[str(h_day)][typeNum][h_time][position[2]] != 0:
+                    return INVALIDO, 'HORÁRIO JÁ OCUPADO 2 _________'
+            except:
+                raise Exception(f'Erro no validation {board[str(h_day)][typeNum][h_time]}, {position[2]}')
+
+        else: 
+            return BREAK_INVALIDO, f'HORÁRIO JÁ OCUPADO 3 _tem um normal no lugar: {horario.type}'
+    return 0, ''
+    

@@ -115,6 +115,9 @@ def mainFunction():  # A função principal do código, que retornará o resulta
 
         print(time, 'Resultado', int(pontuacao))
         print('Finalizando...')
+        for c in quadro['MEC-1NB'].values():
+            print(c[2])
+
         quadro = Optmizer(quadro, teachers, finishing=True)
         print('Nova pontuação final: ', logic.cost_board(quadro))
         break
@@ -492,7 +495,6 @@ def verificando_turmas(classes, teachers):
         elif n > 30:
             raise Exception(f'Horário da turma {turma} está com {n} horários')
     print(turmas)
-
 
 def organizing_data():
     """

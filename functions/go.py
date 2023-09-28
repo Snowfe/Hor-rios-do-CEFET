@@ -47,10 +47,7 @@ def mainFunction():  # A função principal do código, que retornará o resulta
         quadro = {}
         quadro_de_horarios_em_branco(quadro, classes)
        
-        #estorico_de_quadros = []
-
         while len(lista_embaralhada) != 0:
-            #estorico_de_quadros.append( (logic.save_board(quadro), copy.deepcopy(teachers)) )   # Também precisamos salvar os objetos dos professores
             # Retiro o primeiro item da lista e o coloco na variável teacher
             teacher = lista_embaralhada[0]
             lista_embaralhada = lista_embaralhada[1:]

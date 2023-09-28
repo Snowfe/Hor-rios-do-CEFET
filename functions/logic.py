@@ -65,7 +65,7 @@ def getBetterHour(horario, board, subjectPos, typeNum):
                             motivos_do_erro[motivo] += 1
 
                     if pontuation == -100:
-                        continue # Ou break?
+                        break #continue # Ou break?
                     if pontuation == 0:
                         pontuation = cost_individual(horario, [d, h, bimester], quadro, subjectPos, typeNum, bimestral=1)
                         if pontuation > betterH[0][1]:
@@ -231,7 +231,6 @@ def cost_individual(horario, position, board, subjectPos, typeNum, sala='', bime
         
 
     return pontuation
-
 
 def cost_board(board, typeNum=False, in_optimizer=False, teachers=[], novo_horario=0):
     n_h_bimestrais = 0
@@ -432,6 +431,7 @@ def cost_board(board, typeNum=False, in_optimizer=False, teachers=[], novo_horar
     return (result_value/4)
 
 
+
 def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral=0):  # board é o quadro de horários
     """
     Vemos se um determinado horário pode ser colocado em uma determinada posição
@@ -448,36 +448,70 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
     if typeNum == 2 and h_time >= 4:
         print('Mais horários do que devia', horario, h_time)
 
-    # Limitações do professor
-    limitation = horario.teacher.limits[subjectPos]
-    t_limitations = []  # N3:1,4
     """
-    for l in limitation:  # para cada limitação do professor
-        if f'N{h_day}' in str(l):  # Se a limitação estiver no dia do horário
-            try:
-                limite_inferior = int(l.split(':')[1].split(',')[0])
-                limite_superior = int(l.split(':')[1].split(',')[1])
-                if typeNum == 1:
-                    limite_inferior -= 6
-                    limite_superior -= 6
-                elif typeNum == 2:
-                    limite_inferior -= 12
-                    limite_superior -= 12
-            except:  # Considerando o caso de não ter selecionado uma variação de horários
-                limite_inferior = 1
-                limite_superior = 12
-
-            if (limite_inferior <= int(h_time) + 1) and (limite_superior >= int(h_time) + 1):  # Se o horário estiver compreendido durante a limitação
-                return INVALIDO, 'LIMITAÇÃO DO PROFESSOR ________'
+    # Limitações do professor
+    result, motivo = valid_limitations(horario, h_day, h_time, typeNum, subjectPos, INVALIDO)
+    if result < 0: return result, motivo
     """
     # Vamos ver se o horário não pode ficar naquela posição por estarem em campus diferentes
     result, motivo = valid_campus_diferentes(horario, board, position, typeNum, INVALIDO)
-    if result == INVALIDO: return result, motivo
+    if result < 0: return result, motivo
     
     # Horário já está ocupado por outro no Quadro de horários?
     result, motivo = valid_horario_ocupado(horario, board, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO)
-    if result == INVALIDO: return result, motivo
-    """
+    if result < 0: return result, motivo
+    
+    # Verificar também a parte dos professores
+    result, motivo = valid_horario_ocupado_teachers(horario, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO)
+    if result < 0: return result, motivo
+
+    # Não pode trabalhar mais de 8h no mesmo dia
+    result, motivo = valid_menos_de_8h_dia(horario, position, INVALIDO)
+    if result < 0: return result, motivo    
+
+    # Não pode ter um intervalo entre uma aula e outra maior que 3h
+    # Devem ser ao menos 11h entre o primeiro e o último horário de descanso
+    # Status: aguardando reunião, atualmente seria impossível o estado acima citado não ser válido
+    return 0, 'Tudo certo :)'
+
+def valid_campus_diferentes(horario, board, position, typeNum, INVALIDO):
+    for value in board[position[0]][typeNum]:
+        if value:
+            if not(type(value) is list):
+                # Value é um horário normal
+                if horario.local != value.local:
+                    return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 1 ____{horario.local}______'
+            elif len(position) == 3: # Se for bimestral
+                #if (len(h) == 4 and horario.type[2] == '1') or (len(h) == 3 and '4,G' in horario.type) or (len(h) == 2 and not('4,G' in horario.type or horario.type[2] == '1')):
+                try:
+                    tipo_diferente = False
+                    for bimestral in value:
+                        if bimestral:
+                            if bimestral.type == horario.type:
+                                break
+                            else:
+                                tipo_diferente = True
+                                break
+                    if tipo_diferente: 
+                        raise Exception('é de tipo diferente')
+                            
+                    if value[position[2]]:
+                        if value[position[2]].local != horario.local:
+                            return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 2 ___{horario.local}_______'
+                except: # Vai passar por aqui quando as listas forem de comprimentos diferentes.
+                    for bimestral in value:
+                        if bimestral:
+                            if bimestral.local != horario.local: 
+                                #print(f'Erro, dia:{position[0]} listas diferentes')
+                                return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 3 ___{horario.local}_______'
+            else: # Horario é do tipo normal e Value é bimestral
+                for bimestral in value:
+                    if bimestral:
+                        if bimestral.local != horario.local: 
+                            return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 4 ___{horario.local}_______'
+    return 0, ''
+
+def valid_horario_ocupado(horario, board, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO):
     if board[str(h_day)][typeNum][h_time] != 0: # Se horário estiver preenchido 
         if type(board[str(h_day)][typeNum][h_time]) is list and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
     
@@ -515,9 +549,10 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
 
         else: 
             return BREAK_INVALIDO, f'HORÁRIO JÁ OCUPADO 3 _tem um normal no lugar: {horario.type}'
-        """
-    #return 0, ''
-    # Verificar também a parte dos professores
+    
+    return 0, ''
+    
+def valid_horario_ocupado_teachers(horario, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO):
     if type(horario.teacher.schedule[str(h_day)][typeNum]) is int:
         raise Exception('Horário no professor aparece com 0', horario, horario.teacher.schedule, horario.teacher.schedule[str(h_day)])
     if horario.teacher.schedule[str(h_day)][typeNum][h_time] != 0: # Se horário preenchido 
@@ -549,8 +584,9 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
             
         else: 
             return BREAK_INVALIDO, 'HORÁRIO JA PREENCHIDO PROFESSORES 3 _______'
+    return 0, ''
 
-    # Não pode trabalhar mais de 8h no mesmo dia
+def valid_menos_de_8h_dia(horario, position, INVALIDO):
     horaries_in_day = horario.teacher.schedule[position[0]]
     bimestral_h = [] # horários bimestrais
     num_h = 0 # numero de horários
@@ -569,17 +605,29 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
     num_h = num_h + max_value
     if num_h >= 10:
         return INVALIDO, 'MAIS DE 8H DE POR DIA ____________'
+    return 0, ''
 
-    # Se tiver um horário de campus diferente no mesmo turno, manhã ou tarde, ele não pode existir: 
-    # juntar os horários de um mesmo campûs em um mesmo momento de manhã ou tarde
-    
+def valid_limitations(horario, h_day, h_time, typeNum, subjectPos, INVALIDO):
+    limitation = horario.teacher.limits[subjectPos]
+    t_limitations = []  # N3:1,4
+    for l in limitation:  # para cada limitação do professor
+        if f'N{h_day}' in str(l):  # Se a limitação estiver no dia do horário
+            try:
+                limite_inferior = int(l.split(':')[1].split(',')[0])
+                limite_superior = int(l.split(':')[1].split(',')[1])
+                if typeNum == 1:
+                    limite_inferior -= 6
+                    limite_superior -= 6
+                elif typeNum == 2:
+                    limite_inferior -= 12
+                    limite_superior -= 12
+            except:  # Considerando o caso de não ter selecionado uma variação de horários
+                limite_inferior = 1
+                limite_superior = 12
 
-    # Não pode ter um intervalo entre uma aula e outra maior que 3h
-
-    # Devem ser ao menos 11h entre o primeiro e o último horário de descanso
-    # Status: aguardando reunião, atualmente seria impossível o estado acima citado não ser válido
-    #print('Resultado aprovado -> ', board[str(h_day)][typeNum][h_time], position)
-    return 0, 'Tudo certo :)'
+            if (limite_inferior <= int(h_time) + 1) and (limite_superior >= int(h_time) + 1):  # Se o horário estiver compreendido durante a limitação
+                return INVALIDO, 'LIMITAÇÃO DO PROFESSOR ________'
+    return 0, ''
 
 
 
@@ -616,7 +664,6 @@ def bimestrals_organizer(lista_b):
             else:
                 print('ERROR: Tipo do horário não corresponde a nenhum dos requisitos')
             
-
 def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2,positions_for_horaries, pb_1='Nada', pb_2='Nada'):
     """
     Dados 2 horários, trocamos eles de posição
@@ -712,8 +759,6 @@ def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2,positions_for_horarie
         if h2: h2.teacher.schedule[d1][turno][p1] = f"{h2.turm[0]}-{str(h2).split('-')[1]}"
         else: pass   # Pode acontecer caso h2 seja 0
     
-
-
 def print_quadro(quadro, horario, typeNum):
     print(f'========== PROFESSOR {horario.teacher}')
     try: h = quadro[horario.turm[0]]
@@ -759,7 +804,6 @@ def print_quadro(quadro, horario, typeNum):
                 
             else: print(' ', end=', ')
         print(' ]')
-    
 
 def days_with_zero(quadro, turno, turma):
     """
@@ -777,6 +821,7 @@ def days_with_zero(quadro, turno, turma):
                         break
     return result
  
+
 
 def generate_list_position(quadro, turno, turma, just_zeros=True):
     """
@@ -869,8 +914,7 @@ def generate_list_position(quadro, turno, turma, just_zeros=True):
                                 pass
     
     return result
-                                
-                        
+                                             
 def actualize_list_posittions(quadro, turma, turno, lista, d1, p1, d2, p2, pb1=None, pb2=None):
     """
     Quando mudamos dois horários de posição, as respectivas posições para as quais tinhamos uma possível mudança passam a ser inválidas
@@ -974,7 +1018,6 @@ def actualize_list_posittions(quadro, turma, turno, lista, d1, p1, d2, p2, pb1=N
     
     return lista  + valores_a_serem_acrescentados
 
-
 def actualize(teachers, new_teachers):
     """
     Vamos pegar os valores dos objetos que estamos usando e atualizá-los em função dos objetos que encontramos
@@ -987,7 +1030,6 @@ def actualize(teachers, new_teachers):
                     #print('|', end='')
                     old.schedule = copy.deepcopy(new.schedule)
                     break
-
 
 def valid_positions(quadro, turma, turno, p, lista):
     """
@@ -1084,6 +1126,7 @@ def valid_positions(quadro, turma, turno, p, lista):
     return True
 
 
+
 def zero_list(quadro, turma, turno, position_for_horaries, valor):
     """
     Quando tivermos uma lista, ou no quadro ou no professor, cujo todos os valore sejam 0, vamos remover a lista e colocar um 0 no lugar.
@@ -1150,7 +1193,6 @@ def zero_list(quadro, turma, turno, position_for_horaries, valor):
                             
     return valores_a_adicionar, valores_a_remover
 
-
 def h_to_be_changed(quadro, turma, turno, positions_for_horaries, day, position):
     """
     Após zeramos uma lista, vamos selecionar todas as posições que passam a ser viáveis bem como todas as que vão deixar de ser viáveis.
@@ -1174,6 +1216,7 @@ def h_to_be_changed(quadro, turma, turno, positions_for_horaries, day, position)
     return add, remove
 
 
+
 def save_board(quadro):
     copy = {}
     for turma in quadro.keys():
@@ -1195,8 +1238,6 @@ def save_board(quadro):
                     else:
                         copy[turma][dia][turno][p] = quadro[turma][dia][turno][p]
     return copy
-
-
 
 
 def select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, just_zeros=True):
@@ -1336,8 +1377,6 @@ def get_weights(lista, quadro, turma, turno, novo_horario, finishing=False):
     return pesos
 
 
-
-
 def TESTANDO_POSITIONS(quadro, turma, turno, subjectPos, horario):
     print('Testando...')
     print(horario.local, horario.type, horario.teacher)
@@ -1352,87 +1391,3 @@ def TESTANDO_POSITIONS(quadro, turma, turno, subjectPos, horario):
         validation(horario, (dia, position), quadro[turma], subjectPos, turno, turma, 0)
         print(valid[1])
 
-
-def valid_campus_diferentes(horario, board, position, typeNum, INVALIDO):
-    for value in board[position[0]][typeNum]:
-        if value:
-            if not(type(value) is list):
-                # Value é um horário normal
-                if horario.local != value.local:
-                    return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 1 ____{horario.local}______'
-            elif len(position) == 3: # Se for bimestral
-                #if (len(h) == 4 and horario.type[2] == '1') or (len(h) == 3 and '4,G' in horario.type) or (len(h) == 2 and not('4,G' in horario.type or horario.type[2] == '1')):
-                try:
-                    tipo_diferente = False
-                    for bimestral in value:
-                        if bimestral:
-                            if bimestral.type == horario.type:
-                                break
-                            else:
-                                tipo_diferente = True
-                                break
-                    if tipo_diferente: 
-                        raise Exception('é de tipo diferente')
-                            
-                    if value[position[2]]:
-                        if value[position[2]].local != horario.local:
-                            return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 2 ___{horario.local}_______'
-                except: # Vai passar por aqui quando as listas forem de comprimentos diferentes.
-                    for bimestral in value:
-                        if bimestral:
-                            if bimestral.local != horario.local: 
-                                #print(f'Erro, dia:{position[0]} listas diferentes')
-                                return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 3 ___{horario.local}_______'
-            else: # Horario é do tipo normal e Value é bimestral
-                for bimestral in value:
-                    if bimestral:
-                        if bimestral.local != horario.local: 
-                            return INVALIDO, f'CAMPUS DIFERENTES EM UM MESMO TURNO 4 ___{horario.local}_______'
-    return 0, ''
-
-def valid_horario_ocupado(horario, board, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO):
-    if board[str(h_day)][typeNum][h_time] != 0: # Se horário estiver preenchido 
-        if type(board[str(h_day)][typeNum][h_time]) is list and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
-    
-            # Temos essa situação especial, em que por mais que sejam listas diferentes, ainda podemos colocar os horários juntos.
-            
-            special_case = False
-            """
-            if len(board[str(h_day)][typeNum][h_time]) == 4:
-                if (board[str(h_day)][typeNum][h_time][0] == 0 and board[str(h_day)][typeNum][h_time][1] == 0) or (
-                    board[str(h_day)][typeNum][h_time][2] == 0 and board[str(h_day)][typeNum][h_time][3] == 0) and (
-                    horario.type[2] == 2):
-                    special_case = True
-            """
-
-            if ((horario.type[2] == '1' and len(board[str(h_day)][typeNum][h_time]) != 4) or (
-                 '4,G' in horario.type and len(board[str(h_day)][typeNum][h_time]) != 3)) and (not(special_case)):
-                return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{horario.type}'
-            if board[str(h_day)][typeNum][h_time][position[2]] != 0:
-                return INVALIDO, 'HORÁRIO JÁ OCUPADO 2 _________'
-            if not(special_case):
-                for outros_horarios in board[str(h_day)][typeNum][h_time]:
-                    if outros_horarios:
-                        if outros_horarios.type != horario.type:
-                            return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{outros_horarios.type, horario.type}'
-                        if outros_horarios.subject == horario.subject:
-                            return INVALIDO, f'MESMA MATÉRIA FICA EM LISTAS DIFERENTES _{outros_horarios.subject, horario.subject}'
-                        elif outros_horarios.teacher == horario.teacher:
-                            return INVALIDO, f'MESMO PROFESSOR FICA EM LISTAS DIFERENTES_ '
-            # Se horário estiver preenchido
-            else:
-                for outros_horarios in board[str(h_day)][typeNum][h_time]:
-                    if outros_horarios:
-                        # Se os outros horários da lista forem de tipos diferentes
-                        if outros_horarios.type != horario.type or ('3,1,G' in horario.type and len(board[str(h_day)][typeNum][h_time]) != 4):
-                            return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{outros_horarios.type, horario.type}'
-            try:        
-                if board[str(h_day)][typeNum][h_time][position[2]] != 0:
-                    return INVALIDO, 'HORÁRIO JÁ OCUPADO 2 _________'
-            except:
-                raise Exception(f'Erro no validation {board[str(h_day)][typeNum][h_time]}, {position[2]}')
-
-        else: 
-            return BREAK_INVALIDO, f'HORÁRIO JÁ OCUPADO 3 _tem um normal no lugar: {horario.type}'
-    return 0, ''
-    

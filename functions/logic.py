@@ -123,6 +123,8 @@ def cost_individual(horario, position, board, subjectPos, typeNum, sala='', bime
             for h in teacherDayBoard:
                 if h != 0:
                     if type(h) is list and bimestral == 1: # Condicionamento de bimestral
+                        if len(h) == 4 and horario.type[2] == '2':
+                            pontuation += points['tipos_diferentes_separados']
                         if ('1' == horario.type[2] and len(h) == 4) or ((not ('1' == horario.type[2])) and len(h) == 2) or ('4,G' in horario.type and len(h) == 3):
                             if h[position[2]] != 0:
                                 horariosPreenchidos += 1
@@ -462,7 +464,7 @@ def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral
     if result < 0: return result, motivo
     
     # Verificar também a parte dos professores
-    result, motivo = valid_horario_ocupado_teachers(horario, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO)
+    result, motivo = valid_horario_ocupado_teachers(horario, board, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO)
     if result < 0: return result, motivo
 
     # Não pode trabalhar mais de 8h no mesmo dia
@@ -518,8 +520,22 @@ def valid_horario_ocupado(horario, board, h_day, h_time, typeNum, position, subj
             # Temos essa situação especial, em que por mais que sejam listas diferentes, ainda podemos colocar os horários juntos.
             
             special_case = False
-            
+            if len(board[str(h_day)][typeNum][h_time]) == 4:
+                if horario.type[2] == '2' and board[str(h_day)][typeNum][h_time].count(0):
+                    if not(board[str(h_day)][typeNum][h_time][0]):
+                        if not(board[str(h_day)][typeNum][h_time][1]):             special_case = True
+                        elif board[str(h_day)][typeNum][h_time][1].type[2] == '2': special_case = True
+                    elif board[str(h_day)][typeNum][h_time][0].type[2] == '2':
+                        if not( board[str(h_day)][typeNum][h_time][1]):            special_case = True
+                        elif board[str(h_day)][typeNum][h_time][1].type[2] == '2': special_case = True
 
+                    if not(board[str(h_day)][typeNum][h_time][2]):
+                        if not(board[str(h_day)][typeNum][h_time][3]):             special_case = True
+                        elif board[str(h_day)][typeNum][h_time][3].type[2] == '2': special_case = True
+                    elif board[str(h_day)][typeNum][h_time][2].type[2] == '2':
+                        if not( board[str(h_day)][typeNum][h_time][3]):            special_case = True
+                        elif board[str(h_day)][typeNum][h_time][3].type[2] == '2': special_case = True
+            
             if ((horario.type[2] == '1' and len(board[str(h_day)][typeNum][h_time]) != 4) or (
                  '4,G' in horario.type and len(board[str(h_day)][typeNum][h_time]) != 3)) and (not(special_case)):
                 return INVALIDO, f'HORÁRIO POSSUI TIPO DIFERENTE DOS DEMAIS _{horario.type}'
@@ -535,7 +551,7 @@ def valid_horario_ocupado(horario, board, h_day, h_time, typeNum, position, subj
                         elif outros_horarios.teacher == horario.teacher:
                             return INVALIDO, f'MESMO PROFESSOR FICA EM LISTAS DIFERENTES_ '
             # Se horário estiver preenchido
-            else:
+            elif not(special_case):
                 for outros_horarios in board[str(h_day)][typeNum][h_time]:
                     if outros_horarios:
                         # Se os outros horários da lista forem de tipos diferentes
@@ -552,9 +568,27 @@ def valid_horario_ocupado(horario, board, h_day, h_time, typeNum, position, subj
     
     return 0, ''
     
-def valid_horario_ocupado_teachers(horario, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO):
+def valid_horario_ocupado_teachers(horario, board, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO):
     if type(horario.teacher.schedule[str(h_day)][typeNum]) is int:
         raise Exception('Horário no professor aparece com 0', horario, horario.teacher.schedule, horario.teacher.schedule[str(h_day)])
+    special_case = False
+    if type(board[str(h_day)][typeNum][h_time]) is list and horario.teacher.bimestral[subjectPos] == 1:
+        if len(board[str(h_day)][typeNum][h_time]) == 4:
+            if horario.type[2] == '2' and board[str(h_day)][typeNum][h_time].count(0):
+                if not(board[str(h_day)][typeNum][h_time][0]):
+                    if not(board[str(h_day)][typeNum][h_time][1]):             special_case = True
+                    elif board[str(h_day)][typeNum][h_time][1].type[2] == '2': special_case = True
+                elif board[str(h_day)][typeNum][h_time][0].type[2] == '2':
+                    if not( board[str(h_day)][typeNum][h_time][1]):            special_case = True
+                    elif board[str(h_day)][typeNum][h_time][1].type[2] == '2': special_case = True
+
+                if not(board[str(h_day)][typeNum][h_time][2]):
+                    if not(board[str(h_day)][typeNum][h_time][3]):             special_case = True
+                    elif board[str(h_day)][typeNum][h_time][3].type[2] == '2': special_case = True
+                elif board[str(h_day)][typeNum][h_time][2].type[2] == '2':
+                    if not( board[str(h_day)][typeNum][h_time][3]):            special_case = True
+                    elif board[str(h_day)][typeNum][h_time][3].type[2] == '2': special_case = True
+
     if horario.teacher.schedule[str(h_day)][typeNum][h_time] != 0: # Se horário preenchido 
         if type(horario.teacher.schedule[str(h_day)][typeNum][h_time]) is list and horario.teacher.bimestral[subjectPos] == 1: # Se horário preenchido for lista e o horário for bimestral
             
@@ -571,7 +605,7 @@ def valid_horario_ocupado_teachers(horario, h_day, h_time, typeNum, position, su
 
             # Se horário estiver preenchido
                 #Precisamos antes checar se as condições do horário estão corretas, se é compatível o horário que estamos colocando com o local em que ele será colocado
-            if (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 4 and '1' == horario.type[2]) or (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 2 and '2,T' in horario.type) or (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 3 and '4,G' in horario.type):
+            if (not special_case) and ((len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 4 and '1' == horario.type[2]) or (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 2 and '2,T' in horario.type) or (len(horario.teacher.schedule[str(h_day)][typeNum][h_time]) == 3 and '4,G' in horario.type)):
                 try: 
                     if horario.teacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
                         return INVALIDO, 'HORÁRIO JA PREENCHIDO PROFESSORES 2 _______'
@@ -579,7 +613,7 @@ def valid_horario_ocupado_teachers(horario, h_day, h_time, typeNum, position, su
                     print('Posição e horário não estão de acordo', position[2], horario.type)
                     if horario.teacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
                         pass
-            else:
+            elif not special_case:
                 return INVALIDO, 'TIPO DO PROFESSOR E DO HORÁRIO NÃO CORRESPONDEM ______'
             
         else: 
@@ -663,6 +697,7 @@ def bimestrals_organizer(lista_b):
                 return lista_b
             else:
                 print('ERROR: Tipo do horário não corresponde a nenhum dos requisitos')
+      
             
 def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2,positions_for_horaries, pb_1='Nada', pb_2='Nada'):
     """
@@ -670,8 +705,9 @@ def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2,positions_for_horarie
     Se o horário for bimestral e não tiver uma lista na posição de destino, criamos a lista
     Trocamos tanto o horário dos professores deposição quanto os do quadro
     """
-
-
+    #if type(quadro[turma][d2][turno][p2]) is list:
+        #if h1.type[2] == '2' and len(quadro[turma][d2][turno][p2]) == 4:
+            #replace_special_case()
     print('r', end='')
     
     if pb_1 != 'Nada':
@@ -759,6 +795,81 @@ def replace_h(quadro, turma, turno, h1, d1, p1, h2, d2, p2,positions_for_horarie
         if h2: h2.teacher.schedule[d1][turno][p1] = f"{h2.turm[0]}-{str(h2).split('-')[1]}"
         else: pass   # Pode acontecer caso h2 seja 0
     
+def replace_special_case(quadro, turma, turno, h1, d1, p1, h2, d2, p2, positions_for_horaries, pb_1='Nada', pb_2='Nada'):
+    print('ESPECIAL')
+    if h2 == 0:
+        if len(quadro[turma][d1][turno][p1]) == 4 and quadro[turma][d1][turno][p1].count(0) < 2:
+            raise Exception('Invalido para ser caso especial')
+        # Colocar na posição que estava o h1 o h2
+        if pb_1 > 1:
+            quadro[turma][d1][turno][p1][2] = h2
+            quadro[turma][d1][turno][p1][3] = h2
+            
+        else:
+            quadro[turma][d1][turno][p1][0] = h2
+            quadro[turma][d1][turno][p1][1] = h2
+
+        # Colocar na posição que estava o h2 o h1
+        quadro[turma][d2][turno][p2][pb_2] = h1
+        h1.teacher.schedule[d2][turno][p2][pb_2] = h1
+        
+    else: # Vale a pena manter essa possibilidade?
+        if len(quadro[turma][d1][turno][p1]) == 4 and h2.type[2] == '2':
+            if quadro[turma][d1][turno][p1].count(0) < 2:
+                raise Exception('Invalido para ser caso especial')
+            if pb_1 > 1:
+                quadro[turma][d1][turno][p1][2] = h2
+                quadro[turma][d1][turno][p1][3] = h2
+                h2.teacher.schedule[d1][turno][p1][2] = h2
+                h2.teacher.schedule[d1][turno][p1][3] = h2  
+                if len(quadro[turma][d2][turno][p2]) == 4 and h1.type[2] == '2':
+                    # Estamos trocando dois horários especiais de posição
+                    if pb_2 > 1:
+                        quadro[turma][d2][turno][p2][2] = h1
+                        quadro[turma][d2][turno][p2][3] = h1
+                        h1.teacher.schedule[d1][turno][p1][2] = h1
+                        h1.teacher.schedule[d1][turno][p1][3] = h1
+                    else:
+                        quadro[turma][d2][turno][p2][0] = h1
+                        quadro[turma][d2][turno][p2][1] = h1
+                        h1.teacher.schedule[d1][turno][p1][0] = h1
+                        h1.teacher.schedule[d1][turno][p1][1] = h1
+                else:
+                    # Estamos trocando um normal com um especial de posição.
+                    # Será [X, X, S, S] -> [X, ]
+                    quadro[turma][d2][turno][p2][pb_2] = h1
+                    h1.teacher.schedule[d2][turno][p2][pb_2] = h1
+                    
+                    
+            else:
+                quadro[turma][d1][turno][p1][0] = h2
+                quadro[turma][d1][turno][p1][1] = h2
+                h2.teacher.schedule[d1][turno][p1][0] = h2
+                h2.teacher.schedule[d1][turno][p1][1] = h2
+                if len(quadro[turma][d2][turno][p2]) == 4 and h1.type[2] == '2':
+                    # Estamos trocando dois horários especiais de posição
+                    if pb_2 > 1:
+                        quadro[turma][d2][turno][p2][2] = h1
+                        quadro[turma][d2][turno][p2][3] = h1
+                        h1.teacher.schedule[d1][turno][p1][2] = h1
+                        h1.teacher.schedule[d1][turno][p1][3] = h1
+                    else:
+                        quadro[turma][d2][turno][p2][0] = h1
+                        quadro[turma][d2][turno][p2][1] = h1
+                        h1.teacher.schedule[d1][turno][p1][0] = h1
+                        h1.teacher.schedule[d1][turno][p1][1] = h1
+                else:
+                    # Estamos trocando um semestral com um especial de posição
+                    quadro[turma][d2][turno][p2][pb_2] = h1
+                    h1.teacher.schedule[d2][turno][p2][pb_2] = h1
+
+        elif len(quadro[turma][d2][turno][p2]) == 4 and h1.type[2] == '2':
+            if quadro[turma][d2][turno][p2].count(0) < 2:
+                raise Exception('Invalido para ser caso especial')
+            pass
+        else:
+            raise Exception('Não é compátivel com nenhum dos casos especiais.')
+
 def print_quadro(quadro, horario, typeNum):
     print(f'========== PROFESSOR {horario.teacher}')
     try: h = quadro[horario.turm[0]]
@@ -791,16 +902,16 @@ def print_quadro(quadro, horario, typeNum):
                     for bimestre in value:
                         if bimestre: 
                             if '1' in bimestre.local:
-                                print(f'X', end=', ')
+                                print(f'{bimestre.type[2]}', end=', ')
                             else:
-                                print(f'Y', end=', ')
+                                print(f'{bimestre.type[2]}', end=', ')
                         else: print(' ', end=', ')
                     print(']', end=', ')
                 else:
                     if '1' in value.local:
-                        print(f'X', end=', ')
+                        print(f'{value.type[2]}', end=', ')
                     else:
-                        print(f'Y', end=', ')
+                        print(f'{value.type[2]}', end=', ')
                 
             else: print(' ', end=', ')
         print(' ]')
@@ -820,7 +931,7 @@ def days_with_zero(quadro, turno, turma):
                         result.append(dia)
                         break
     return result
- 
+
 
 
 def generate_list_position(quadro, turno, turma, just_zeros=True):
@@ -885,6 +996,10 @@ def generate_list_position(quadro, turno, turma, just_zeros=True):
                                             else:
                                                 pass
                                                 #print(quadro[turma][dia_2][turno][p2][pb2], end=' ')
+                                elif len(quadro[turma][dia_2][turno][p2]) == 4 and quadro[turma][dia_1][turno][p1][pb1].type[2] == '2': # Temos um caso especial:
+                                    pb2 = random.randint(0, len(quadro[turma][dia_1][turno][p1])-1)
+                                    if valid_positions(quadro, turma, turno, (dia_1, p1, pb1, dia_2, p2, pb2), result):
+                                        result.append((dia_1, p1, pb1, dia_2, p2, pb2))
                             elif not(quadro[turma][dia_2][turno][p2]): # Caso selecionemos um horário vazio que nem tenha uma lista nele.
                                 pb2 = random.randint(0, len(quadro[turma][dia_1][turno][p1])-1)
                                 if valid_positions(quadro, turma, turno, (dia_1, p1, pb1, dia_2, p2, pb2), result):
@@ -1063,8 +1178,9 @@ def valid_positions(quadro, turma, turno, p, lista):
                     return False
                 if quadro[turma][p[3]][turno][p[4]][p[5]]:
                     if quadro[turma][p[0]][turno][p[1]][p[2]].type != quadro[turma][p[3]][turno][p[4]][p[5]].type:
-                        #print('0', end='')
-                        return False
+                        if not((quadro[turma][p[0]][turno][p[1]][p[2]].type[2] == '2') and (len(quadro[turma][p[3]][turno][p[4]][p[5]]) == 4) and (quadro[turma][p[0]][turno][p[1]][p[2]].count(0) != 2)): # Caso especial    
+                            #print('0', end='')
+                            return False
                 if len(quadro[turma][p[0]][turno][p[1]]) != len(quadro[turma][p[3]][turno][p[4]]):
                     #print('0', end='')
                     return False
@@ -1380,8 +1496,8 @@ def get_weights(lista, quadro, turma, turno, novo_horario, finishing=False):
 def TESTANDO_POSITIONS(quadro, turma, turno, subjectPos, horario):
     print('Testando...')
     print(horario.local, horario.type, horario.teacher)
-    continuar = bool(input('Editar? '))
-    if continuar:
+    continuar = int(input('Editar? '))
+    if continuar != 0:
         dia = str(input('Digite o dia: '))
         position = int(input('Digite a posição: '))
         if not('0' in horario.type):

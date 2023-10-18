@@ -25,7 +25,7 @@ def restartObjects(listO):
 def mainFunction():  # A função principal do código, que retornará o resultado que nós esperamos
     
     # =================== Pegando os dados que nós fornecemos
-    teachers, teachersNames, classes = organizing_data()
+    teachers, teachersNames, classes, teachersData = organizing_data()
 
     # ==================== Processando os dados: Gerando a planilha final com base nos dados
     print('verificando', end =' ')
@@ -58,8 +58,8 @@ def mainFunction():  # A função principal do código, que retornará o resulta
             for horario in h_professor:
 
 
-                if not('MEC-1NB' in horario.turm[0]):
-                    continue
+                #if not('ELM' in horario.turm[0]):
+                    #continue
 
 
                 subjectPos = horario.teacher.subjects.index(f"{horario.subject}")  # -{horario.turm[0].split('-')[1]}")
@@ -118,7 +118,8 @@ def mainFunction():  # A função principal do código, que retornará o resulta
         quadro = Optmizer(quadro, teachers, finishing=True)
         print('Nova pontuação final: ', logic.cost_board(quadro))
         break
-
+    verificar_se_esta_completo(teachers, teachersData)
+    
     horarios = random.choice(bestSchedule)
     # Dando tudo certo, vamos salvar as informações nas tabelas.
     for turm in classes:
@@ -139,23 +140,21 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
     print(f'{motivo}')
     if not(finishing): 
         logic.print_quadro(quadro_base, novo_horario, typeNum)
+        
 
     # Inicialmos com uma grade horária funcional
     quadro = quadro_base.copy()
-    if finishing:
-        better_board = (logic.save_board(quadro), logic.cost_board(quadro_base), copy.deepcopy(teachers))
-    else:
-        better_board = (logic.save_board(quadro), logic.cost_board(quadro_base, in_optimizer=True, novo_horario=novo_horario), copy.deepcopy(teachers))
+    if finishing: better_board = (logic.save_board(quadro), logic.cost_board(quadro_base), copy.deepcopy(teachers))
+    else:         better_board = (logic.save_board(quadro), logic.cost_board(quadro_base, in_optimizer=True, novo_horario=novo_horario), copy.deepcopy(teachers))
     find_one_better = False
-
     reset = False
 
     # Começamos a organizá-la
     while True:
         
         if finishing: print('.')
-
         print('\n')
+        
         if not(finishing):
             if '0' in novo_horario.type: print('    NORMAL', end=' ')
             else:                        print('    BIMESTRAL', end=' ')
@@ -163,7 +162,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
         # É aqui que decidimos a hora de parar o código caso não ache um resultado, ou esteja apenas finalizando
         if find_one_better: times = 0
         elif times == 30 and finishing: return better_board[0] # Quando está apenas finalizando
-        elif times == 50:                                      # Quando não acha resultado
+        elif times == 50:   
             reset = True
             break
         times += 1
@@ -392,11 +391,23 @@ def criar_as_salas(planilha):
 
 def put_0_in_position(quadro, turma, turno, dia_1, p_1, dia_2, p_2, pb_1=None, pb_2=None, h_bimestral_1=None, h_bimestral_2=None, horario_1=None, horario_2=None):
     if pb_1 != None:
+
+        if len(quadro[turma][dia_1][turno][p_1]) == 4 and h_bimestral_1.type[2] == 2:
+            for b in range(0, 4): # Pra que isso?
+                if quadro[turma][dia_1][turno][p_1][b].subject == h_bimestral_1.subject: quadro[turma][dia_1][turno][p_1][b] = 0
+        if h_bimestral_2:
+            if len(quadro[turma][dia_2][turno][p_2]) == 4 and h_bimestral_2.type[2] == 2:
+                for b in range(0, 4):
+                    if quadro[turma][dia_2][turno][p_2][b].subject == h_bimestral_1.subject: quadro[turma][dia_2][turno][p_1][b] = 0
+
+
         quadro[turma][dia_1][turno][p_1][pb_1] = 0
+        if h_bimestral_1.coteacher: h_bimestral_1.coteacher.schedule[dia_1][turno][p_1][pb_1] = 0
         h_bimestral_1.teacher.schedule[dia_1][turno][p_1][pb_1] = 0
         if quadro[turma][dia_2][turno][p_2]:
             if h_bimestral_2 != 0:
                 h_bimestral_2.teacher.schedule[dia_2][turno][p_2][pb_2] = 0
+                if h_bimestral_2.coteacher: h_bimestral_2.coteacher.schedule[dia_2][turno][p_2][pb_2] = 0
                 quadro[turma][dia_2][turno][p_2][pb_2] = 0
     else:
         quadro[turma][dia_1][turno][p_1] = 0
@@ -491,7 +502,29 @@ def verificando_turmas(classes, teachers):
             raise Exception(f'Horário da turma noturna {turma} está com {n} horários')
         elif n > 30:
             raise Exception(f'Horário da turma {turma} está com {n} horários')
-    print(turmas)
+    
+def verificar_se_esta_completo(teachers, teachersData):
+    """
+    Vamos ver se os professores estão dando a quantidade de aulas que eles deveriam dar a princípio.
+    """
+    professores = {}
+    
+    for t in teachers:
+        professores[t.name] = 0
+        for day in t.schedule:
+            for turno in day:
+                for h in turno:
+                    if type(h) is list:
+                        for bimestral in h:
+                            professores[t.name] += 1 #/len(h)
+                    else:
+                        professores[t.name] += 1
+    for l in range(0, len(teachersData['Professor'])):
+        professores[teachersData['Professor'][l]] -= teachersData['MEC'][l] + teachersData['MCT'][l] + teachersData['ELM'][l]
+
+    for k, v in professores:
+        print(f'{v} ---> {k}')
+    
 
 def organizing_data():
     """
@@ -511,7 +544,7 @@ def organizing_data():
         pointsData = loadData.getPoints('./data/preferencias.txt')  # Leitura das pontuações para o cost
     except Exception as e:
         print(f"Houve um erro ao tentar pegar os dados das planilhas.\n{e}")
-
+    duplas_de_professores = loadData.get_coteacher_horaries(teachersData)
     # ==================== Processando os dados para deixa-los melhor de mexer
 
     classes = []  # Lista de objetos de cada turma
@@ -541,7 +574,7 @@ def organizing_data():
                                       str(teachersData["Bimestral"][index]),
                                       str(teachersData["Local"][index]), 
                                       horaries))
-            teachersNames.append(teacher)
+            teachersNames.append(teacher) #???
         else:
             teachers[teachersNames.index(teacher)].subjects.append(
                 f'{teachersData["Materia"][index]}-{teachersData["Ano"][index]}{teachersData["Sub-Grupo"][index]}')
@@ -556,8 +589,8 @@ def organizing_data():
         # print(f'{teachers[teachersNames.index(teacher)].name}, {teachers[teachersNames.index(teacher)].horaries}')
 
     tipos_normais = ['1,4,T', '3,1,G', '2,1,T', '2,2,T', '2,4,T', '0,0,0', '3,4,G']
-
-    for professor in teachers:
+    tipos_para_duplas = {'2,1,G':'3,1,G'}
+    for professor in teachers: 
         horarios = professor.horaries
         for i, h in enumerate(horarios.items()):
             materia = h[0]
@@ -565,11 +598,30 @@ def organizing_data():
                 for time in range(0, turma[1]):
                     sala, tipo = turma[0].split('|')
                     # Esse if só está aqui porque não se sabe ainda como interpretar na tabela final como ficariam os horários de tipos diferentes.
-                    if not(tipo in tipos_normais):
+                    if not(tipo in tipos_normais): #Os co professor não possuem horários do tipo normal. Temos que achar os dois passar o h de um para normal e excluir o outro
+                        for dupla in duplas_de_professores[sala]:
+                            if dupla[2] == materia:
+                                if professor == dupla[0] or professor == dupla[1]:
+                                    # Temos que passar o tipo de um dos professores para normal. Apenas de um deles.
+                                    if tipo in tipos_para_duplas.keys():
+                                        tipo = tipos_para_duplas[tipo]
+                                        duplas_de_professores[sala].remove(dupla)
+
                         pass
                     else:
+                        if len(duplas_de_professores[sala]):
+                            for dupla in duplas_de_professores[sala]:
+                                if professor == dupla[0] and materia == dupla[2]:
+                                    ho = c.Horario(teacher=professor, coteacher=dupla[1], subject=materia, turm=(sala, turma[1]), local=professor.locais[i], tipo=tipo)  # Objeto do horário
+                                    professor.h_individuais.append(ho)
+                                    break
+                                elif professor == dupla[1] and materia == dupla[2]:
+                                    ho = c.Horario(teacher=professor, coteacher=dupla[0], subject=materia, turm=(sala, turma[1]), local=professor.locais[i], tipo=tipo)  # Objeto do horário
+                                    professor.h_individuais.append(ho)
+                                    break
                         ho = c.Horario(teacher=professor, subject=materia, turm=(sala, turma[1]), local=professor.locais[i], tipo=tipo)  # Objeto do horário
                         professor.h_individuais.append(ho)  # Uma lista com todos os objetos Horario do professor []
+
             professor.h_individuais = loadData.organize_table(professor.h_individuais)
 
     roomsNames = roomsData['Sala'] # -- Salas
@@ -578,12 +630,16 @@ def organizing_data():
     for index, room in enumerate(roomsNames):  # Transforma cada turma em um objeto de uma classe
         rooms.append(c.Room(room, roomsData['Local'][index], roomsData['Limitacoes'][index]))
     
-    return teachers, teachersNames, classes
+    return teachers, teachersNames, classes, teachersData
 
 def put_h_in_the_place(quadro, horario, position_info, typeNum, teacher, teachers_copy, teachersNames, subjectPos):
     """
     Temos um horário e colocamos ele em uma determinada posição no quadro.
     """
+    #if type(quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])]) is list:
+        #if len(quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])]) == 4 and horario.type[2] == '2': # É um caso especial
+            #quadro[position]
+            #pass
     if teacher.bimestral[subjectPos] == 1: # Se horário for bimestral
         if not(type(quadro[position_info[3]][position_info[0]][typeNum][int(position_info[1])]) is list): # Se no horário não for lista, criamos a lista
             if '1' == horario.type[2]:
@@ -618,9 +674,9 @@ def put_h_in_the_place(quadro, horario, position_info, typeNum, teacher, teacher
             elif '2,T' in horario.type or '4,T' in horario.type:
                 horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0]
         try:
-
             horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
         except:
+            raise Exception('Erro na hora de colocar o horárion nos professores')
             print(horario.type, position_info[2], horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])], motivo)
         teachers_copy[teachersNames.index(horario.teacher.name)].schedule[position_info[0]][typeNum][
             int(position_info[1])] = list(horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])])
@@ -629,3 +685,26 @@ def put_h_in_the_place(quadro, horario, position_info, typeNum, teacher, teacher
 
         teachers_copy[teachersNames.index(horario.teacher.name)].schedule[position_info[0]][typeNum][
             int(position_info[1])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
+    # No caso do professor dividir a matéria com outro.
+    if horario.coteacher:
+        if '0' in horario.type:
+            if not(type(horario.coteacher.schedule[position_info[0]][typeNum][int(position_info[1])]) is list): # Se no horário não for lista
+            
+                if '1' == horario.type[2]:
+                    horario.coteacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0, 0, 0]
+                elif '4,G' in horario.type:
+                    horario.coteacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0, 0]
+                elif '2,T' in horario.type or '4,T' in horario.type:
+                    horario.coteacher.schedule[position_info[0]][typeNum][int(position_info[1])] = [0, 0]
+            try:
+                horario.coteacher.schedule[position_info[0]][typeNum][int(position_info[1])][int(position_info[2])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
+            except:
+                raise Exception('Erro na hora de colocar o horárion nos professores', position_info, len(horario.coteacher.schedule[position_info[0]][typeNum][int(position_info[1])]))
+                print(horario.type, position_info[2], horario.coteacher.schedule[position_info[0]][typeNum][int(position_info[1])], motivo)
+            teachers_copy[teachersNames.index(horario.coteacher.name)].schedule[position_info[0]][typeNum][
+                int(position_info[1])] = list(horario.coteacher.schedule[position_info[0]][typeNum][int(position_info[1])])
+        else:
+            horario.teacher.schedule[position_info[0]][typeNum][int(position_info[1])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"
+
+            teachers_copy[teachersNames.index(horario.teacher.name)].schedule[position_info[0]][typeNum][
+                int(position_info[1])] = f"{horario.turm[0]}-{str(horario).split('-')[1]}"

@@ -9,3 +9,4 @@ Espaco_no_mesmo_lugar=2.0; // Se a sala e o professor tiverem um zero no mesmo l
 Dia_vazio=15.0; // Privilegiar se o dia estiver sem nenhum horário preenchido ainda.
 Listas_iguais=15.0; // Se as listas forem iguais, é mais fácil de conciliar horários de campus diferentes.
 Normais_juntos=7.0; // Vamos dar preferencia para que os normais fiquem juntos. Mais fácil de agrupar os de diferentes campus.
+tipos_diferentes_separados=-2.5; // Vamos deixar menos provável que os casos especiais ocorram.

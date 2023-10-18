@@ -70,13 +70,14 @@ class Room:
 
 
 class Horario:
-    def __init__(self, teacher, subject, turm, tipo, possible_h=0, local='c1'):
+    def __init__(self, teacher, subject, turm, tipo, possible_h=0, local='c1', coteacher=0):
         self.teacher = teacher
         self.subject = subject
         self.turm = turm
         self.possible_h = possible_h
         self.local = local
         self.type = tipo 
+        self.coteacher = coteacher
 
         # self.position = None
 

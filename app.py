@@ -13,10 +13,10 @@ limitsRoom = set()
 def start():
     print('Criando novos horários...')
     
-    #try:
-    go.mainFunction()
-    #except Exception as e:
-     #   print(': )', e)
+    try:
+        go.mainFunction()
+    except Exception as e:
+        print(': )', e)
 
     path = "./data"
     path = os.path.realpath(path)

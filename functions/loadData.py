@@ -283,7 +283,51 @@ def get_functional_grade(path, teachers, teachersNames):
             dia = [dia[0:6], dia[6:12], dia[12:]]
             #print(dia)
                 
-    
+def get_coteacher_horaries(td):
+    """
+    Vamos selecionar todos os professores que dividem matérias com outros professores.
+    Se dentro de uma mesma turma, tivermos dois horários com a mesma matéria, seus professores serão coteachers, um deles no caso.
+    """
+    # Pegar as turmas:
+    turmas = []
+    for l in range(0, len(td['Professor'])):
+        
+        if td['MEC'][l] and not(f"MEC-{td['Ano'][l]}{td['Sub-Grupo']}" in turmas):
+            turmas.append(f"MEC-{td['Ano'][l]}{td['Sub-Grupo'][l]}")
+        elif td['ELM'][l] and not(f"ELM-{td['Ano'][l]}{td['Sub-Grupo']}" in turmas):
+            turmas.append(f"ELM-{td['Ano'][l]}{td['Sub-Grupo'][l]}")
+        elif td['MCT'][l] and not(f"MCT-{td['Ano'][l]}{td['Sub-Grupo']}" in turmas):
+            turmas.append(f"MCT-{td['Ano'][l]}{td['Sub-Grupo'][l]}")
+        l += 1
+    horarios = {}
+    duplas_de_professores = {}
+    for turma in turmas:
+        horarios[turma] = []
+        duplas_de_professores[turma] = []
+
+    for l in range(0, len(td['Professor'])):
+        if td['MCT'][l]:
+            for h in horarios[f'MCT-{td["Ano"][l]}{td["Sub-Grupo"][l]}']:
+                if h[0] == td['Materia'][l] and h[1] != td['Professor'][l]: 
+                    duplas_de_professores[f'MCT-{td["Ano"][l]}{td["Sub-Grupo"][l]}'].append((td['Professor'][l], h[1], td['Materia'][l]))
+                    continue
+            horarios[f'MCT-{td["Ano"][l]}{td["Sub-Grupo"][l]}'].append((td['Materia'][l], td['Professor'][l]))
+        elif td['ELM'][l]:
+            for h in horarios[f'ELM-{td["Ano"][l]}{td["Sub-Grupo"][l]}']:
+                if h[0] == td['Materia'][l] and h[1] != td['Professor'][l]: 
+                    duplas_de_professores[f'ELM-{td["Ano"][l]}{td["Sub-Grupo"][l]}'].append((td['Professor'][l], h[1], td['Materia'][l]))
+                    continue
+            horarios[f'ELM-{td["Ano"][l]}{td["Sub-Grupo"][l]}'].append((td['Materia'][l], td['Professor'][l]))
+        elif td['MEC'][l]:
+            for h in horarios[f'MEC-{td["Ano"][l]}{td["Sub-Grupo"][l]}']:
+                if h[0] == td['Materia'][l] and h[1] != td['Professor'][l]: 
+                    duplas_de_professores[f'MEC-{td["Ano"][l]}{td["Sub-Grupo"][l]}'].append((td['Professor'][l], h[1], td['Materia'][l]))
+                    continue
+            horarios[f'MEC-{td["Ano"][l]}{td["Sub-Grupo"][l]}'].append((td['Materia'][l], td['Professor'][l]))
+    for k, v in duplas_de_professores.items():
+        print(k, ' - ',v)
+    return duplas_de_professores
+        
 
 #lista_com_objt_professores, lista_com_nomes_professores = organizando_dados_da_planilha()
 #get_functional_grade('Planilha funcional', teachers=lista_com_objt_professores, teachersNames=lista_com_nomes_professores)

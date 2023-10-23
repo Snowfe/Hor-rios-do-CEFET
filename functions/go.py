@@ -58,8 +58,8 @@ def mainFunction():  # A função principal do código, que retornará o resulta
             for horario in h_professor:
 
 
-                #if not('ELM' in horario.turm[0]):
-                    #continue
+                if ('NA' in horario.turm[0] or 'NB' in horario.turm[0]):
+                    continue
 
 
                 subjectPos = horario.teacher.subjects.index(f"{horario.subject}")  # -{horario.turm[0].split('-')[1]}")
@@ -118,7 +118,7 @@ def mainFunction():  # A função principal do código, que retornará o resulta
         quadro = Optmizer(quadro, teachers, finishing=True)
         print('Nova pontuação final: ', logic.cost_board(quadro))
         break
-    verificar_se_esta_completo(teachers, teachersData)
+    #verificar_se_esta_completo(teachers, teachersData)
     
     horarios = random.choice(bestSchedule)
     # Dando tudo certo, vamos salvar as informações nas tabelas.
@@ -161,7 +161,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
         
         # É aqui que decidimos a hora de parar o código caso não ache um resultado, ou esteja apenas finalizando
         if find_one_better: times = 0
-        elif times == 30 and finishing: return better_board[0] # Quando está apenas finalizando
+        elif times == 5 and finishing: return better_board[0] # Quando está apenas finalizando
         elif times == 50:   
             reset = True
             break
@@ -522,7 +522,7 @@ def verificar_se_esta_completo(teachers, teachersData):
     for l in range(0, len(teachersData['Professor'])):
         professores[teachersData['Professor'][l]] -= teachersData['MEC'][l] + teachersData['MCT'][l] + teachersData['ELM'][l]
 
-    for k, v in professores:
+    for k, v in professores.values():
         print(f'{v} ---> {k}')
     
 

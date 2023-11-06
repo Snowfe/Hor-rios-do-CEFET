@@ -298,7 +298,7 @@ def get_coteacher_horaries(td):
             turmas.append(f"ELM-{td['Ano'][l]}{td['Sub-Grupo'][l]}")
         elif td['MCT'][l] and not(f"MCT-{td['Ano'][l]}{td['Sub-Grupo']}" in turmas):
             turmas.append(f"MCT-{td['Ano'][l]}{td['Sub-Grupo'][l]}")
-        l += 1
+        #l += 1
     horarios = {}
     duplas_de_professores = {}
     for turma in turmas:
@@ -312,6 +312,7 @@ def get_coteacher_horaries(td):
                     duplas_de_professores[f'MCT-{td["Ano"][l]}{td["Sub-Grupo"][l]}'].append((td['Professor'][l], h[1], td['Materia'][l]))
                     continue
             horarios[f'MCT-{td["Ano"][l]}{td["Sub-Grupo"][l]}'].append((td['Materia'][l], td['Professor'][l]))
+        
         elif td['ELM'][l]:
             for h in horarios[f'ELM-{td["Ano"][l]}{td["Sub-Grupo"][l]}']:
                 if h[0] == td['Materia'][l] and h[1] != td['Professor'][l]: 
@@ -324,8 +325,9 @@ def get_coteacher_horaries(td):
                     duplas_de_professores[f'MEC-{td["Ano"][l]}{td["Sub-Grupo"][l]}'].append((td['Professor'][l], h[1], td['Materia'][l]))
                     continue
             horarios[f'MEC-{td["Ano"][l]}{td["Sub-Grupo"][l]}'].append((td['Materia'][l], td['Professor'][l]))
+    
     for k, v in duplas_de_professores.items():
-        print(k, ' - ',v)
+        if len(v) != 0: print(k, ' - ',v)
     return duplas_de_professores
         
 

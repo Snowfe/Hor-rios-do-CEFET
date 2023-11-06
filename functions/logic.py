@@ -571,6 +571,7 @@ def valid_horario_ocupado(horario, board, h_day, h_time, typeNum, position, subj
 def valid_horario_ocupado_teachers(horario, board, h_day, h_time, typeNum, position, subjectPos, INVALIDO, BREAK_INVALIDO):
     if type(horario.teacher.schedule[str(h_day)][typeNum]) is int:
         raise Exception('Horário no professor aparece com 0', horario, horario.teacher.schedule, horario.teacher.schedule[str(h_day)])
+    
     special_case = False
     if type(board[str(h_day)][typeNum][h_time]) is list and horario.teacher.bimestral[subjectPos] == 1:
         if len(board[str(h_day)][typeNum][h_time]) == 4:
@@ -618,6 +619,38 @@ def valid_horario_ocupado_teachers(horario, board, h_day, h_time, typeNum, posit
             
         else: 
             return BREAK_INVALIDO, 'HORÁRIO JA PREENCHIDO PROFESSORES 3 _______'
+    
+    if horario.coteacher:
+        if horario.teacher.schedule[str(h_day)][typeNum][h_time] != 0: # Se horário preenchido 
+            if type(horario.coteacher.schedule[str(h_day)][typeNum][h_time]) is list and not('0' in horario.type): # Se horário preenchido for lista e o horário for bimestral
+                
+                
+                if not(0 in horario.coteacher.schedule[str(h_day)][typeNum][h_time]):
+                    return BREAK_INVALIDO, 'HORÁRIO JA PREENCHIDO PROFESSORES 1 _______'
+                
+                
+                for bimestral in horario.coteacher.schedule[str(h_day)][typeNum][h_time]:
+                    if bimestral:
+                        if '1' != horario.type[0]:
+                            return INVALIDO, 'Não pode ter mais de uma posição PREENCHIDA'
+                
+
+                # Se horário estiver preenchido
+                    #Precisamos antes checar se as condições do horário estão corretas, se é compatível o horário que estamos colocando com o local em que ele será colocado
+                if (not special_case) and ((len(horario.coteacher.schedule[str(h_day)][typeNum][h_time]) == 4 and '1' == horario.type[2]) or (len(horario.coteacher.schedule[str(h_day)][typeNum][h_time]) == 2 and '2,T' in horario.type) or (len(horario.coteacher.schedule[str(h_day)][typeNum][h_time]) == 3 and '4,G' in horario.type)):
+                    try: 
+                        if horario.coteacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
+                            return INVALIDO, 'HORÁRIO JA PREENCHIDO PROFESSORES 2 _______'
+                    except:
+                        print('Posição e horário não estão de acordo', position[2], horario.type)
+                        if horario.coteacher.schedule[str(h_day)][typeNum][h_time][position[2]] != 0:
+                            pass
+                elif not special_case:
+                    return INVALIDO, 'TIPO DO PROFESSOR E DO HORÁRIO NÃO CORRESPONDEM ______'
+                
+            else: 
+                return BREAK_INVALIDO, 'HORÁRIO JA PREENCHIDO PROFESSORES 3 _______'
+    
     return 0, ''
 
 def valid_menos_de_8h_dia(horario, position, INVALIDO):
@@ -892,6 +925,25 @@ def print_quadro(quadro, horario, typeNum):
                 
             else: print(' ', end=', ')
         print(' ]')
+    if horario.coteacher:
+        print('========== COTEACHER')
+        for variavel in horario.coteacher.schedule.values():
+            print(len(variavel), end=' ')
+            print('[', end='')
+            for value in variavel[typeNum]:
+                if value:
+                    if type(value) is list:
+                        print('[', end='')
+                        for bimestre in value:
+                            if bimestre: 
+                                print('X', end=', ')
+                            else: print(' ', end=', ')
+                        print(']', end=', ')
+                    else:
+                        print('X', end=', ')
+                    
+                else: print(' ', end=', ')
+            print(' ]')
     print('========== SALA', horario.turm)
     for variavel in quadro[horario.turm[0]].values():
         print('[', end='')

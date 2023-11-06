@@ -6,7 +6,7 @@ import random
 import copy
 
 NUMERO_DE_REPETIÇÕES = 1
-NUMERO_DE_REPETIÇÕES_OP = 1
+NUMERO_DE_REPETIÇÕES_OP = 10
 LIMITE = 20
 
 def restartObjects(listO):
@@ -172,7 +172,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
         quadro = logic.save_board(better_board[0])
         logic.actualize(teachers, better_board[2])
         
-        turma, positions_for_horaries = logic.select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, just_zeros=not(finishing))
+        turma, positions_for_horaries = logic.select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, just_zeros=not(finishing), teachers=teachers)
         print(turma, end='')
 
         turno = typeNum

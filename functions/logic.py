@@ -42,7 +42,7 @@ def getBetterHour(horario, board, subjectPos, typeNum):
                         motivos_do_erro[motivo] += 1
 
                 if pontuation == 0: # Se for válido
-                    pontuation = cost_individual(horario, [d, h], quadro, subjectPos, typeNum)
+                    pontuation = cost_individual(horario, [d, h], quadro, typeNum=typeNum)
                     if pontuation > betterH[0][1]:
                         betterH = [[f'{d};{h}', pontuation]]
                     elif pontuation == betterH[0][1]:
@@ -67,7 +67,7 @@ def getBetterHour(horario, board, subjectPos, typeNum):
                     if pontuation == -100:
                         break #continue # Ou break?
                     if pontuation == 0:
-                        pontuation = cost_individual(horario, [d, h, bimester], quadro, subjectPos, typeNum, bimestral=1)
+                        pontuation = cost_individual(horario, [d, h, bimester], quadro, typeNum=typeNum, bimestral=1)
                         if pontuation > betterH[0][1]:
                             betterH = [[f'{d};{h};{bimester}', pontuation]]
                         elif pontuation == betterH[0][1]:
@@ -92,13 +92,17 @@ def getBetterHour(horario, board, subjectPos, typeNum):
                               # Se bimestral será: f'{day};{hour};{bimester};{turm}'
 
 
-def cost_individual(horario, position, board, subjectPos, typeNum, sala='', bimestral=0):
+def cost_individual(horario, position, board, typeNum, sala='', bimestral=0):
     # Position => (Dia, horário, bimestre)
     points = loadData.getPoints('./data/preferencias.txt')
     pointsKeys = points.keys()
 
     pontuation = 0
-    dayBoard = board[position[0]][typeNum]
+    try:
+        dayBoard = board[position[0]][typeNum]
+    except:
+        print(board)
+        dayBoard = board[position[0]][typeNum]
     teacherDayBoard = horario.teacher.schedule[position[0]][typeNum]
 
     horariosPreenchidos = 0  # Horarios já preenchidos no dia
@@ -431,6 +435,18 @@ def cost_board(board, typeNum=False, in_optimizer=False, teachers=[], novo_horar
                     turno_preferencias += 1
         media += result_value
     return (result_value/4)
+
+def cost_turm(board, turma):
+    result = 0
+    for dia in range(2, 7):
+        dia = str(dia)
+        for turno in range(0, 3):
+            for p in range(0, len(board[turma][dia][turno])):
+                if type(board[turma][dia][turno][p]) is list:
+                    for b in range(0, len(board[turma][dia][turno][p])):
+                        if board[turma][dia][turno][p][b]: result += cost_individual(board[turma][dia][turno][p][b], board=board, position=(dia, p, b), typeNum=turno)
+                if board[turma][dia][turno][p]: result += cost_individual(board[turma][dia][turno][p], board=board, position=(dia, p), typeNum=turno)
+    return result
 
 
 
@@ -1408,9 +1424,19 @@ def save_board(quadro):
     return copy
 
 
-def select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, just_zeros=True):
+def select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, teachers, just_zeros=True):
     if finishing:
-            turma = random.choice(list(quadro.keys()))
+            pesos_para_turma = []
+            for turm in quadro.keys():
+                pesos_para_turma.append(1/cost_turm(quadro, turm))
+            """
+            Precisamos de uma forma de escolher qual turma vamos melhorar.
+            Podemos escolher a turma pela que possui a menor pontuação ou pela que foi menos auterada, ou pela que as auterações resultaram em mais mudanças positivas
+            Temos o cost_individual que calcula o custo quanto a um horário específico, 
+            e temos o cost_board que calcula para todos os horários de todas as salas.
+            Precisamos adaptar um dos dois acima para conseguirmos fazer de apenas uma turma
+            """
+            turma = random.choices(list(quadro.keys()), weights=pesos_para_turma)
             positions_for_horaries = generate_list_position(quadro, typeNum, turma=turma, just_zeros=False)
     else:
         # Se estivermos apenas organizando os horários, vamos escolher entre as turmas do professor e do horário em si.

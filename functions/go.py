@@ -6,7 +6,7 @@ import random
 import copy
 
 NUMERO_DE_REPETIÇÕES = 1
-NUMERO_DE_REPETIÇÕES_OP = 10
+NUMERO_DE_REPETIÇÕES_OP = 50
 LIMITE = 20
 
 def restartObjects(listO):
@@ -112,8 +112,6 @@ def mainFunction():  # A função principal do código, que retornará o resulta
 
         print(time, 'Resultado', int(pontuacao))
         print('Finalizando...')
-        for c in quadro['MEC-1NB'].values():
-            print(c[2])
 
         quadro = Optmizer(quadro, teachers, finishing=True)
         print('Nova pontuação final: ', logic.cost_board(quadro))
@@ -138,6 +136,8 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
     # Primeiramente, vamos ver se não tem nada de errado nas informações que estamos recebendo.
     already_check = []
     times = 0
+    times_of_optimizing = 0
+    weights_list = 0
     print(f'{motivo}')
     if not(finishing): 
         logic.print_quadro(quadro_base, novo_horario, typeNum)
@@ -148,6 +148,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
     if finishing: better_board = (logic.save_board(quadro), logic.cost_board(quadro_base), copy.deepcopy(teachers))
     else:         better_board = (logic.save_board(quadro), logic.cost_board(quadro_base, in_optimizer=True, novo_horario=novo_horario), copy.deepcopy(teachers))
     find_one_better = False
+    find_better_in_this_turm = 0
     reset = False
 
     # Começamos a organizá-la
@@ -155,7 +156,8 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
         
         if finishing: print('.')
         print('\n')
-        
+        print(times_of_optimizing, end=' ')
+        times_of_optimizing += 1
         if not(finishing):
             if '0' in novo_horario.type: print('    NORMAL', end=' ')
             else:                        print('    BIMESTRAL', end=' ')
@@ -172,7 +174,8 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
         quadro = logic.save_board(better_board[0])
         logic.actualize(teachers, better_board[2])
         
-        turma, positions_for_horaries = logic.select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, just_zeros=not(finishing), teachers=teachers)
+        turma, positions_for_horaries, weights_list = logic.select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, just_zeros=not(finishing), teachers=teachers, last_turm=find_better_in_this_turm, last_weights=weights_list)
+        find_better_in_this_turm = 0
         print(turma, end='')
 
         turno = typeNum
@@ -288,6 +291,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                         better_board = (logic.save_board(quadro), value, copy.deepcopy(teachers))
                         print('^^^', end='')
                         find_one_better = True
+                        find_better_in_this_turm = turma
                         break
 
                     logic.TESTANDO_erros(quadro, turma, turno, positions_for_horaries)
@@ -344,6 +348,7 @@ def Optmizer(quadro_base, teachers, novo_horario=None, subjectPos=0, typeNum=0, 
                         better_board = (quadro.copy(), value, copy.deepcopy(teachers))
                         print('^^^', end='')
                         find_one_better = True
+                        find_better_in_this_turm = turma
                         break
 
                     # Vemos se já é o bastante para colocar o novo_horario em algum lugar

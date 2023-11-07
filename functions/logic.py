@@ -91,7 +91,7 @@ def getBetterHour(horario, board, subjectPos, typeNum):
         return f"{result};{turm[0]}", 0  # Retorna f'{day};{hour};{turm}' depois nós colocaremos a room variable
                               # Se bimestral será: f'{day};{hour};{bimester};{turm}'
 
-
+# Funções relacionadas ao custo, determinar pontuação de um estado
 def cost_individual(horario, position, board, typeNum, sala='', bimestral=0):
     # Position => (Dia, horário, bimestre)
     points = loadData.getPoints('./data/preferencias.txt')
@@ -101,7 +101,8 @@ def cost_individual(horario, position, board, typeNum, sala='', bimestral=0):
     try:
         dayBoard = board[position[0]][typeNum]
     except:
-        print(board)
+        print(board.keys())
+        print('.')
         dayBoard = board[position[0]][typeNum]
     teacherDayBoard = horario.teacher.schedule[position[0]][typeNum]
 
@@ -436,7 +437,9 @@ def cost_board(board, typeNum=False, in_optimizer=False, teachers=[], novo_horar
         media += result_value
     return (result_value/4)
 
-def cost_turm(board, turma):
+def cost_turm(board, turma, last_turm):
+    """
+    n = 0
     result = 0
     for dia in range(2, 7):
         dia = str(dia)
@@ -444,12 +447,21 @@ def cost_turm(board, turma):
             for p in range(0, len(board[turma][dia][turno])):
                 if type(board[turma][dia][turno][p]) is list:
                     for b in range(0, len(board[turma][dia][turno][p])):
-                        if board[turma][dia][turno][p][b]: result += cost_individual(board[turma][dia][turno][p][b], board=board, position=(dia, p, b), typeNum=turno)
-                if board[turma][dia][turno][p]: result += cost_individual(board[turma][dia][turno][p], board=board, position=(dia, p), typeNum=turno)
+                        if board[turma][dia][turno][p][b]: 
+                            result += cost_individual(board[turma][dia][turno][p][b], board=board[turma], position=(dia, p, b), typeNum=turno)
+                            n += 1
+                elif board[turma][dia][turno][p]: 
+                    result += cost_individual(board[turma][dia][turno][p], board=board[turma], position=(dia, p), typeNum=turno)
+                    n += 1
+    result = 0.01 if not(result) else (result**1.2)/n
+    """
+    if turma == last_turm:
+        result = 60
+    else: result = -1
     return result
 
 
-
+# Funções relacionadas a validação
 def validation(horario, position, board, subjectPos, typeNum, sala='', bimestral=0):  # board é o quadro de horários
     """
     Vemos se um determinado horário pode ser colocado em uma determinada posição
@@ -1424,21 +1436,25 @@ def save_board(quadro):
     return copy
 
 
-def select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, teachers, just_zeros=True):
+def select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, teachers, just_zeros=True, last_turm=0, last_weights=0):
     if finishing:
             pesos_para_turma = []
             for turm in quadro.keys():
-                pesos_para_turma.append(1/cost_turm(quadro, turm))
-            """
-            Precisamos de uma forma de escolher qual turma vamos melhorar.
-            Podemos escolher a turma pela que possui a menor pontuação ou pela que foi menos auterada, ou pela que as auterações resultaram em mais mudanças positivas
-            Temos o cost_individual que calcula o custo quanto a um horário específico, 
-            e temos o cost_board que calcula para todos os horários de todas as salas.
-            Precisamos adaptar um dos dois acima para conseguirmos fazer de apenas uma turma
-            """
-            turma = random.choices(list(quadro.keys()), weights=pesos_para_turma)
+                pesos_para_turma.append(cost_turm(quadro, turm, last_turm))
+            if last_weights:
+                for k in range(0, len(pesos_para_turma)):
+                    if pesos_para_turma[k] < 1:
+                        pesos_para_turma[k] = 1
+                    else:
+                        pesos_para_turma[k] += last_weights[k]
+            else:
+                for k in range(0, len(pesos_para_turma)):
+                    pesos_para_turma[k] += 2
+            
+            turma = random.choices(list(quadro.keys()), weights=pesos_para_turma)[0]
             positions_for_horaries = generate_list_position(quadro, typeNum, turma=turma, just_zeros=False)
     else:
+        pesos_para_turma = 0
         # Se estivermos apenas organizando os horários, vamos escolher entre as turmas do professor e do horário em si.
         # Mas vamos dar um maior peso para a turma do professor
         possible_turms = [novo_horario.turm[0] for c in range(0, 8)]
@@ -1458,7 +1474,7 @@ def select_turm_and_positions_list(finishing, novo_horario, quadro, typeNum, tea
             turma = random.choice(list(quadro.keys()))
             positions_for_horaries = generate_list_position(quadro, typeNum, turma=turma, just_zeros=False)
     
-    return turma, positions_for_horaries
+    return turma, positions_for_horaries, pesos_para_turma
 
         
 def remove_already_check_positions(positions_for_horaries, already_check, quantiti):

@@ -354,12 +354,18 @@ def cost_board(board, typeNum=False, in_optimizer=False, teachers=[], novo_horar
                         result_value += points['horariosPoints']
                     
                     # Horários de mesma matéria agrupados
+                    
                     for h in range(0, len(turno)-1):
                         #if (h != len(turno) - 1):
                         if turno[h] != 0 and turno[h+1] != 0:
                             if not(type(turno[h]) is list or type(turno[h+1]) is list) and turno[h] != 0 and turno[h+1] != 0:
                                 if turno[h].subject == turno[h+1].subject:
                                     result_value = result_value + points['lastResp'] if not(in_optimizer) else result_value + points['lastResp']*5
+                                    try:
+                                        if turno[h].subject == turno[h+2].subject:
+                                            result_value = result_value + points['lastResp'] if not(in_optimizer) else result_value + points['lastResp']*5
+                                    except:
+                                        pass
                                 else:
                                     result_value -= points['lastResp'] * 2
                             elif (type(turno[h]) is list) and (type(turno[h+1]) is list) and b == 0:
@@ -368,6 +374,11 @@ def cost_board(board, typeNum=False, in_optimizer=False, teachers=[], novo_horar
                                         if turno[h][count] and turno[h+1][count]:
                                             if turno[h][count].subject == turno[h+1][count].subject:
                                                 result_value = result_value + points['lastResp'] if not(in_optimizer) else result_value + points['lastResp']*5
+                                                try:
+                                                    if turno[h][count].subject == turno[h+2][count].subject:
+                                                        result_value = result_value + points['lastResp'] if not(in_optimizer) else result_value + points['lastResp']*5
+                                                except: pass
+
                                             else:
                                                 result_value -= points['lastResp'] * 2
                                             
@@ -438,23 +449,6 @@ def cost_board(board, typeNum=False, in_optimizer=False, teachers=[], novo_horar
     return (result_value/4)
 
 def cost_turm(board, turma, last_turm):
-    """
-    n = 0
-    result = 0
-    for dia in range(2, 7):
-        dia = str(dia)
-        for turno in range(0, 3):
-            for p in range(0, len(board[turma][dia][turno])):
-                if type(board[turma][dia][turno][p]) is list:
-                    for b in range(0, len(board[turma][dia][turno][p])):
-                        if board[turma][dia][turno][p][b]: 
-                            result += cost_individual(board[turma][dia][turno][p][b], board=board[turma], position=(dia, p, b), typeNum=turno)
-                            n += 1
-                elif board[turma][dia][turno][p]: 
-                    result += cost_individual(board[turma][dia][turno][p], board=board[turma], position=(dia, p), typeNum=turno)
-                    n += 1
-    result = 0.01 if not(result) else (result**1.2)/n
-    """
     if turma == last_turm:
         result = 60
     else: result = -1
